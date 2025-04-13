@@ -14,7 +14,6 @@
             --button-text: #000000;
             --generate-button-bg: #4CAF50;
             --save-button-bg: #2196F3;
-            --discord-button-bg: #7289DA;
             --button-text-light: #ffffff;
         }
 
@@ -93,23 +92,9 @@
             color: var(--button-text-light);
         }
 
-        .btn-discord {
-            background-color: var(--discord-button-bg);
-            color: var(--button-text-light);
-        }
-
         .btn-toggle {
             background-color: var(--button-bg);
             color: var(--button-text);
-        }
-
-        .button-group {
-            display: flex;
-            gap: 10px;
-        }
-
-        .button-group button {
-            flex: 1;
         }
 
         .checkbox-container {
@@ -123,7 +108,7 @@
             margin-right: 10px;
         }
 
-        .modal {
+        .password-modal {
             display: none;
             position: fixed;
             top: 0;
@@ -144,7 +129,7 @@
             text-align: center;
         }
 
-        .input-field {
+        .password-input {
             margin: 15px 0;
         }
 
@@ -168,37 +153,26 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-
-        .discord-config {
-            background-color: var(--input-bg);
-            border: 1px solid #ccc;
+        
+        .user-info {
+            margin-bottom: 20px;
             padding: 15px;
+            background-color: var(--input-bg);
             border-radius: 5px;
-            margin-top: 15px;
-            display: none;
-        }
-
-        .status-message {
-            margin-top: 10px;
-            padding: 10px;
-            border-radius: 5px;
-            display: none;
-        }
-
-        .status-success {
-            background-color: rgba(76, 175, 80, 0.2);
-            color: #2e7d32;
-        }
-
-        .status-error {
-            background-color: rgba(244, 67, 54, 0.2);
-            color: #c62828;
+            border: 1px solid #ccc;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>📘 AI 소설 생성기</h1>
+        
+        <div class="user-info">
+            <div class="input-group">
+                <label for="user-name">작성자 닉네임 (선택)</label>
+                <input type="text" id="user-name" placeholder="소설과 함께 저장될 닉네임">
+            </div>
+        </div>
         
         <div class="input-group">
             <label for="topic">주제 (선택)</label>
@@ -224,35 +198,15 @@
             <input type="checkbox" id="special-mode" name="special-mode">
             <label for="special-mode">⛔️ 모드 활성화</label>
         </div>
-
-        <div class="checkbox-container">
-            <input type="checkbox" id="discord-auto-share" name="discord-auto-share">
-            <label for="discord-auto-share">🤖 소설 생성 후 자동으로 Discord에 공유</label>
-        </div>
-        
-        <div class="discord-config" id="discord-config">
-            <div class="input-group">
-                <label for="author-name">작성자 이름 (선택)</label>
-                <input type="text" id="author-name" placeholder="Discord에 표시될 작성자 이름">
-            </div>
-        </div>
         
         <button id="generate-button" class="btn-generate">✨ 소설 생성</button>
-        
-        <div class="button-group">
-            <button id="save-button" class="btn-save">💾 저장하기</button>
-            <button id="discord-button" class="btn-discord">🤖 Discord에 공유</button>
-        </div>
-        
+        <button id="save-button" class="btn-save">💾 저장하기</button>
         <button id="toggle-mode" class="btn-toggle">🌙 다크/화이트 전환</button>
-        <button id="discord-settings-button" class="btn-toggle">⚙️ Discord 설정</button>
         
         <div class="input-group">
             <label for="story-output">📖 생성된 소설</label>
             <textarea id="story-output" readonly></textarea>
         </div>
-        
-        <div id="status-message" class="status-message"></div>
         
         <div class="loading">
             <div class="spinner"></div>
@@ -260,27 +214,14 @@
         </div>
     </div>
     
-    <div id="password-modal" class="modal">
+    <div id="password-modal" class="password-modal">
         <div class="modal-content">
             <h3>⛔️ 모드 활성화</h3>
             <p>⛔️ 모드를 활성화하려면 암호를 입력하세요</p>
-            <input type="password" id="password-input" class="input-field" placeholder="암호 입력">
+            <input type="password" id="password-input" class="password-input" placeholder="암호 입력">
             <div>
                 <button id="submit-password">확인</button>
                 <button id="cancel-password">취소</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="discord-modal" class="modal">
-        <div class="modal-content">
-            <h3>🤖 Discord 설정</h3>
-            <p>Discord 봇 설정을 입력하세요</p>
-            <input type="password" id="discord-token" class="input-field" placeholder="Discord 봇 토큰">
-            <input type="text" id="discord-channel" class="input-field" placeholder="채널 ID">
-            <div>
-                <button id="save-discord-settings">저장</button>
-                <button id="cancel-discord-settings">취소</button>
             </div>
         </div>
     </div>
@@ -291,16 +232,17 @@
         const GROQ_MODEL = "meta-llama/llama-4-scout-17b-16e-instruct";
         const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
         
-        // Discord 설정
-        const DISCORD_BOT_TOKEN = "YOUR_DISCORD_BOT_TOKEN"; // 기본 토큰 (사용자가 변경 가능)
-        let discordToken = localStorage.getItem('discord_token') || DISCORD_BOT_TOKEN;
-        let discordChannelId = localStorage.getItem('discord_channel_id') || "";
+        // Discord 봇 설정 - 여기에 Discord 봇 토큰과 채널 ID를 넣으세요
+        const DISCORD_BOT_TOKEN = "YOUR_DISCORD_BOT_TOKEN_HERE"; // 실제 토큰으로 바꿔주세요
+        const DISCORD_CHANNEL_ID = "YOUR_CHANNEL_ID_HERE"; // 실제 채널 ID로 바꿔주세요
+        const WEBHOOK_URL = "YOUR_DISCORD_WEBHOOK_URL_HERE"; // 웹훅 URL을 사용할 경우 (선택사항)
         
         // 특별 모드 암호
         const SPECIAL_MODE_PASSWORD = "novel1234";
         let isSpecialMode = false;
         
         // DOM 요소들
+        const userNameInput = document.getElementById('user-name');
         const topicInput = document.getElementById('topic');
         const descriptionInput = document.getElementById('description');
         const charactersInput = document.getElementById('characters');
@@ -308,67 +250,22 @@
         const storyOutput = document.getElementById('story-output');
         const generateButton = document.getElementById('generate-button');
         const saveButton = document.getElementById('save-button');
-        const discordButton = document.getElementById('discord-button');
         const toggleButton = document.getElementById('toggle-mode');
         const specialModeCheckbox = document.getElementById('special-mode');
-        const discordAutoShareCheckbox = document.getElementById('discord-auto-share');
-        const discordConfigDiv = document.getElementById('discord-config');
-        const authorNameInput = document.getElementById('author-name');
         const passwordModal = document.getElementById('password-modal');
         const passwordInput = document.getElementById('password-input');
         const submitPasswordButton = document.getElementById('submit-password');
         const cancelPasswordButton = document.getElementById('cancel-password');
-        const discordSettingsButton = document.getElementById('discord-settings-button');
-        const discordModal = document.getElementById('discord-modal');
-        const discordTokenInput = document.getElementById('discord-token');
-        const discordChannelInput = document.getElementById('discord-channel');
-        const saveDiscordSettingsButton = document.getElementById('save-discord-settings');
-        const cancelDiscordSettingsButton = document.getElementById('cancel-discord-settings');
         const loadingDiv = document.querySelector('.loading');
-        const statusMessage = document.getElementById('status-message');
         
-        // Discord 자동 공유 체크박스 이벤트
-        discordAutoShareCheckbox.addEventListener('change', function() {
-            if (this.checked) {
-                discordConfigDiv.style.display = 'block';
-                
-                // Discord 설정이 되어있지 않으면 설정 모달 열기
-                if (!discordToken || discordToken === "YOUR_DISCORD_BOT_TOKEN" || !discordChannelId) {
-                    openDiscordModal();
-                }
-            } else {
-                discordConfigDiv.style.display = 'none';
-            }
-        });
-        
-        // Discord 설정 버튼 클릭 이벤트
-        discordSettingsButton.addEventListener('click', openDiscordModal);
-        
-        function openDiscordModal() {
-            discordModal.style.display = 'flex';
-            discordTokenInput.value = discordToken === "YOUR_DISCORD_BOT_TOKEN" ? "" : discordToken;
-            discordChannelInput.value = discordChannelId;
-        }
-        
-        // Discord 설정 저장
-        saveDiscordSettingsButton.addEventListener('click', () => {
-            discordToken = discordTokenInput.value.trim();
-            discordChannelId = discordChannelInput.value.trim();
-            
-            if (discordToken && discordChannelId) {
-                localStorage.setItem('discord_token', discordToken);
-                localStorage.setItem('discord_channel_id', discordChannelId);
-                discordModal.style.display = 'none';
-                showStatusMessage('Discord 설정이 저장되었습니다.', true);
-            } else {
-                alert('Discord 봇 토큰과 채널 ID를 모두 입력해주세요.');
-            }
-        });
-        
-        // Discord 설정 취소
-        cancelDiscordSettingsButton.addEventListener('click', () => {
-            discordModal.style.display = 'none';
-        });
+        // 기기 정보 수집
+        const deviceInfo = {
+            userAgent: navigator.userAgent,
+            language: navigator.language,
+            platform: navigator.platform,
+            screenWidth: window.screen.width,
+            screenHeight: window.screen.height
+        };
         
         // 다크 모드 토글
         toggleButton.addEventListener('click', () => {
@@ -406,17 +303,6 @@
             isSpecialMode = false;
         });
         
-        // 상태 메시지 표시 함수
-        function showStatusMessage(message, isSuccess = true) {
-            statusMessage.textContent = message;
-            statusMessage.style.display = 'block';
-            statusMessage.className = 'status-message ' + (isSuccess ? 'status-success' : 'status-error');
-            
-            setTimeout(() => {
-                statusMessage.style.display = 'none';
-            }, 5000);
-        }
-        
         // 프롬프트 생성 함수
         function createPrompt(topic, description, characters, perspective) {
             if (isSpecialMode) {
@@ -441,8 +327,137 @@
             }
         }
         
+        // Discord에 소설 공유 함수
+        async function shareToDiscord(story, metadata) {
+            try {
+                // 제목 추출
+                let title = "AI 생성 소설";
+                const titleMatch = story.match(/^# (.+)$|^(.+)\n={3,}|^(.+)\n-{3,}|^(.+)\n/m);
+                if (titleMatch) {
+                    title = (titleMatch[1] || titleMatch[2] || titleMatch[3] || titleMatch[4]).trim();
+                }
+                
+                const date = new Date();
+                const dateString = date.toLocaleString('ko-KR');
+                
+                // 사용할 메서드 결정 (웹훅 또는 봇 API)
+                if (WEBHOOK_URL && WEBHOOK_URL !== "YOUR_DISCORD_WEBHOOK_URL_HERE") {
+                    // 웹훅 사용
+                    const webhookBody = {
+                        content: `**새로운 AI 소설이 생성되었습니다!**`,
+                        embeds: [{
+                            title: title,
+                            description: story.length > 4000 ? story.substring(0, 4000) + "..." : story,
+                            color: 8311585, // 보라색
+                            fields: [
+                                {
+                                    name: "작성자",
+                                    value: metadata.userName || "익명의 작가",
+                                    inline: true
+                                },
+                                {
+                                    name: "생성일시",
+                                    value: dateString,
+                                    inline: true
+                                },
+                                {
+                                    name: "주제",
+                                    value: metadata.topic || "지정되지 않음",
+                                    inline: true
+                                }
+                            ],
+                            footer: {
+                                text: `AI 소설 생성기`
+                            }
+                        }]
+                    };
+                    
+                    await fetch(WEBHOOK_URL, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(webhookBody)
+                    });
+                    
+                } else if (DISCORD_BOT_TOKEN && DISCORD_BOT_TOKEN !== "YOUR_DISCORD_BOT_TOKEN_HERE" && 
+                           DISCORD_CHANNEL_ID && DISCORD_CHANNEL_ID !== "YOUR_CHANNEL_ID_HERE") {
+                    // 봇 API 사용
+                    const botBody = {
+                        content: `**새로운 AI 소설이 생성되었습니다!**`,
+                        embeds: [{
+                            title: title,
+                            description: story.length > 4000 ? story.substring(0, 4000) + "..." : story,
+                            color: 8311585, // 보라색
+                            fields: [
+                                {
+                                    name: "작성자",
+                                    value: metadata.userName || "익명의 작가",
+                                    inline: true
+                                },
+                                {
+                                    name: "생성일시",
+                                    value: dateString,
+                                    inline: true
+                                },
+                                {
+                                    name: "주제",
+                                    value: metadata.topic || "지정되지 않음",
+                                    inline: true
+                                }
+                            ],
+                            footer: {
+                                text: `AI 소설 생성기`
+                            }
+                        }]
+                    };
+                    
+                    await fetch(`https://discord.com/api/v9/channels/${DISCORD_CHANNEL_ID}/messages`, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bot ${DISCORD_BOT_TOKEN}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(botBody)
+                    });
+                }
+                
+                // 소설 파일도 따로 전송 (4000자 이상인 경우)
+                if (story.length > 4000) {
+                    const formData = new FormData();
+                    const fileName = `${title.replace(/[^\w가-힣ㄱ-ㅎㅏ-ㅣ\s]/g, '')}_${Date.now()}.txt`;
+                    const file = new Blob([story], { type: 'text/plain' });
+                    
+                    formData.append('file', file, fileName);
+                    formData.append('content', `"${title}" 소설 전문`);
+                    
+                    if (WEBHOOK_URL && WEBHOOK_URL !== "YOUR_DISCORD_WEBHOOK_URL_HERE") {
+                        await fetch(WEBHOOK_URL, {
+                            method: 'POST',
+                            body: formData
+                        });
+                    } else if (DISCORD_BOT_TOKEN && DISCORD_BOT_TOKEN !== "YOUR_DISCORD_BOT_TOKEN_HERE" && 
+                               DISCORD_CHANNEL_ID && DISCORD_CHANNEL_ID !== "YOUR_CHANNEL_ID_HERE") {
+                        await fetch(`https://discord.com/api/v9/channels/${DISCORD_CHANNEL_ID}/messages`, {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': `Bot ${DISCORD_BOT_TOKEN}`
+                            },
+                            body: formData
+                        });
+                    }
+                }
+                
+                console.log('소설이 Discord에 성공적으로 공유되었습니다!');
+                
+            } catch (error) {
+                console.error('Discord 공유 에러:', error);
+            }
+        }
+        
         // 소설 생성 함수
         generateButton.addEventListener('click', async () => {
+            const userName = userNameInput.value;
             const topic = topicInput.value;
             const description = descriptionInput.value;
             const characters = charactersInput.value;
@@ -479,10 +494,20 @@
                 
                 storyOutput.value = story;
                 
-                // 자동 Discord 공유 설정이 활성화되어 있으면 Discord에 공유
-                if (discordAutoShareCheckbox.checked) {
-                    await shareToDiscord(story);
-                }
+                // 소설 메타데이터
+                const metadata = {
+                    userName: userName,
+                    topic: topic,
+                    description: description,
+                    characters: characters,
+                    perspective: perspective,
+                    specialMode: isSpecialMode,
+                    timestamp: new Date().toISOString(),
+                    deviceInfo: deviceInfo
+                };
+                
+                // Discord에 자동으로 공유
+                await shareToDiscord(story, metadata);
                 
             } catch (error) {
                 alert(`에러 발생: ${error.message}`);
@@ -490,80 +515,6 @@
             } finally {
                 generateButton.disabled = false;
                 loadingDiv.style.display = 'none';
-            }
-        });
-        
-        // Discord에 공유 함수
-        async function shareToDiscord(story) {
-            if (!discordToken || discordToken === "YOUR_DISCORD_BOT_TOKEN" || !discordChannelId) {
-                showStatusMessage('Discord 설정이 완료되지 않았습니다. 설정 버튼을 클릭하여 설정을 완료해주세요.', false);
-                return;
-            }
-            
-            try {
-                // 제목 추출
-                let title = "AI 생성 소설";
-                const titleMatch = story.match(/^# (.+)$|^(.+)\n={3,}|^(.+)\n-{3,}|^(.+)\n/m);
-                if (titleMatch) {
-                    title = (titleMatch[1] || titleMatch[2] || titleMatch[3] || titleMatch[4]).trim();
-                }
-                
-                const authorName = authorNameInput.value.trim() || "익명의 작가";
-                const date = new Date();
-                const dateString = date.toLocaleDateString('ko-KR');
-                
-                // Discord 메시지 구성
-                const message = {
-                    content: `**새로운 AI 소설이 생성되었습니다!**`,
-                    embeds: [{
-                        title: title,
-                        description: story.length > 4000 ? story.substring(0, 4000) + "..." : story,
-                        color: 0x7289DA,
-                        author: {
-                            name: authorName
-                        },
-                        footer: {
-                            text: `${dateString}에 생성됨`
-                        }
-                    }]
-                };
-                
-                // Discord API 요청
-                const discordResponse = await fetch(`https://discord.com/api/v9/channels/${discordChannelId}/messages`, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bot ${discordToken}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(message)
-                });
-                
-                if (!discordResponse.ok) {
-                    const errorData = await discordResponse.json();
-                    throw new Error(`Discord API 에러: ${discordResponse.status} - ${JSON.stringify(errorData)}`);
-                }
-                
-                showStatusMessage('소설이 Discord에 성공적으로 공유되었습니다!', true);
-                
-            } catch (error) {
-                console.error('Discord 공유 에러:', error);
-                showStatusMessage(`Discord 공유 중 오류 발생: ${error.message}`, false);
-            }
-        }
-        
-        // Discord 버튼 클릭 이벤트
-        discordButton.addEventListener('click', async () => {
-            const story = storyOutput.value.trim();
-            if (!story || story === "소설 생성 중입니다...") {
-                alert("먼저 소설을 생성하세요.");
-                return;
-            }
-            
-            discordButton.disabled = true;
-            try {
-                await shareToDiscord(story);
-            } finally {
-                discordButton.disabled = false;
             }
         });
         
@@ -593,21 +544,9 @@
 
         // ESC 키로 모달 닫기
         document.addEventListener('keydown', function(event) {
-            if (event.key === 'Escape') {
-                if (passwordModal.style.display === 'flex') {
-                    passwordModal.style.display = 'none';
-                    specialModeCheckbox.checked = false;
-                }
-                if (discordModal.style.display === 'flex') {
-                    discordModal.style.display = 'none';
-                }
-            }
-        });
-        
-        // 페이지 로드 시 저장된 Discord 설정을 확인
-        document.addEventListener('DOMContentLoaded', function() {
-            if (discordToken && discordToken !== "YOUR_DISCORD_BOT_TOKEN" && discordChannelId) {
-                discordSettingsButton.textContent = '⚙️ Discord 설정 (저장됨)';
+            if (event.key === 'Escape' && passwordModal.style.display === 'flex') {
+                passwordModal.style.display = 'none';
+                specialModeCheckbox.checked = false;
             }
         });
     </script>
