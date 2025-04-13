@@ -243,10 +243,10 @@
 
     <script>
         // 여기에 고정된 API 키를 설정합니다
-        const GROQ_API_KEY = "여기에_너의_Groq_API_KEY를_입력"; // 이 부분을 실제 API 키로 변경하세요
+        const GROQ_API_KEY = "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("; // 이 부분을 실제 API 키로 변경하세요
         
         // 관리자 비밀번호 설정
-        const ADMIN_PASSWORD = "여기에_비밀모드_패스워드_입력"; // 이 부분을 원하는 비밀번호로 변경하세요
+        const ADMIN_PASSWORD = "********"; // 이 부분을 원하는 비밀번호로 변경하세요
         
         // 드라이브 연동을 위한 서버 URL
         const SERVER_URL = "https://your-server-url.com/upload-story"; // 이 부분을 실제 서버 URL로 변경하세요
@@ -376,7 +376,7 @@
 
         // 소설 생성 함수
         generateBtn.addEventListener('click', async () => {
-            if (!GROQ_API_KEY || GROQ_API_KEY === "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") {
+            if (!GROQ_API_KEY || GROQ_API_KEY === "여기에_너의_Groq_API_KEY를_입력") {
                 showError('코드 내 API 키가 설정되지 않았습니다. HTML 파일을 수정하여 API 키를 입력해주세요.');
                 return;
             }
