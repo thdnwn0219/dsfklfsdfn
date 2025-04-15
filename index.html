@@ -749,6 +749,13 @@
             const loadingMsg = addCharacterMessage("...");
             
             try {
+                // NSFW 모드 설정
+                let nsfwSetting = "";
+                    if (isSpecialMode) {
+                        nsfwSetting = "사용자와의 대화에서 성인 콘텐츠와 NSFW 주제를 포함할 수 있습니다. 캐릭터가 소설 내에서 가진 성격과 특성에 맞게 응답해야 합니다.";
+                } else {
+                        nsfwSetting = "사용자와의 대화는 전연령이 볼 수 있는 내용으로 유지하세요.";
+                }
                 // 캐릭터 응답 생성 요청
                 const chatPrompt = `
                 당신은 소설 속 캐릭터 "${character.name}"입니다. 다음은 해당 캐릭터에 대한 설명입니다: ${character.description}
