@@ -1,0 +1,932 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Novel Creation Tool</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Arial', sans-serif;
+        }
+        
+        body {
+            background-color: #000;
+            color: #fff;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        /* Splash Screen */
+        .splash-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            transition: opacity 0.5s ease;
+        }
+        
+        .splash-logo {
+            max-width: 300px;
+            opacity: 0;
+            animation: fadeIn 0.5s ease forwards;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .app-container {
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+        
+        .container {
+            display: flex;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .sidebar {
+            width: 30%;
+            background-color: #000;
+            padding: 20px;
+            border-radius: 10px;
+        }
+        
+        .main-content {
+            width: 70%;
+            padding: 20px;
+            position: relative;
+        }
+        
+        .logo-container {
+            margin-bottom: 30px;
+        }
+        
+        .logo-container img {
+            max-width: 200px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 18px;
+        }
+        
+        .form-group input, .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #333;
+            border-radius: 5px;
+            background-color: #fff;
+        }
+        
+        .generate-btn {
+            background-color: #000;
+            color: #fff;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            display: block;
+            width: 100%;
+            margin-top: 20px;
+            margin-bottom: 20px;
+            position: relative;
+        }
+        
+        .generate-btn::before {
+            content: '';
+            position: absolute;
+            top: -3px;
+            left: -3px;
+            right: -3px;
+            bottom: -3px;
+            background: linear-gradient(45deg, #ff0000, #ff8000, #ffff00, #00ff00, #0000ff, #8000ff, #ff00ff);
+            background-size: 400% 400%;
+            z-index: -1;
+            border-radius: 28px;
+            animation: glowingBorder 15s linear infinite;
+        }
+        
+        @keyframes glowingBorder {
+            0% {
+                background-position: 0% 50%;
+            }
+            50% {
+                background-position: 100% 50%;
+            }
+            100% {
+                background-position: 0% 50%;
+            }
+        }
+        
+        /* Toggle switch for restricted mode */
+        .toggle-switch-container {
+            margin-top: 20px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .toggle-switch-container label {
+            margin-right: 10px;
+            font-size: 16px;
+        }
+        
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 30px;
+        }
+        
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #333;
+            transition: .4s;
+            border-radius: 30px;
+        }
+        
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 22px;
+            width: 22px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        
+        input:checked + .slider {
+            background-color: #ff007f;
+        }
+        
+        input:checked + .slider:before {
+            transform: translateX(30px);
+        }
+        
+        .password-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            z-index: 100;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .password-modal-content {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            width: 300px;
+            text-align: center;
+            color: #000;
+        }
+        
+        .password-modal input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        
+        .password-modal button {
+            padding: 10px 20px;
+            background-color: #000;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        
+        .chat-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            z-index: 100;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .chat-modal-content {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            width: 80%;
+            max-width: 800px;
+            height: 80%;
+            color: #000;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .chat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #ccc;
+        }
+        
+        .chat-characters {
+            display: flex;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+        
+        .character-option {
+            padding: 8px 15px;
+            margin: 5px;
+            background-color: #f0f0f0;
+            border-radius: 20px;
+            cursor: pointer;
+        }
+        
+        .character-option.selected {
+            background-color: #000;
+            color: #fff;
+        }
+        
+        .chat-messages {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 10px;
+            background-color: #f9f9f9;
+            border-radius: 5px;
+            margin-bottom: 15px;
+        }
+        
+        .chat-input {
+            display: flex;
+        }
+        
+        .chat-input input {
+            flex-grow: 1;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            margin-right: 10px;
+        }
+        
+        .chat-input button {
+            padding: 10px 20px;
+            background-color: #000;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        
+        .close-modal {
+            cursor: pointer;
+            font-size: 20px;
+        }
+        
+        .white-label {
+            background-color: #fff;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            position: relative;
+            overflow: hidden;
+            z-index: 2;
+        }
+        
+        .textarea-container {
+            width: 100%;
+            height: 500px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        
+        .textarea-container textarea {
+            width: 100%;
+            height: 100%;
+            padding: 10px;
+            border: none;
+            resize: none;
+        }
+        
+        .action-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+        
+        .action-btn {
+            padding: 12px 25px;
+            border-radius: 25px;
+            font-weight: bold;
+            cursor: pointer;
+            text-align: center;
+        }
+        
+        .continue-btn {
+            background-color: #000;
+            color: #fff;
+            border: none;
+        }
+        
+        .download-btn {
+            background-color: #000;
+            color: #fff;
+            border: none;
+        }
+        
+        .veochat-btn {
+            background-color: transparent;
+            border: 1px solid #000;
+            color: #000;
+        }
+        
+        .rainbow-bg {
+            position: absolute;
+            top: -50px;
+            left: -50px;
+            right: -50px;
+            bottom: -50px;
+            background: linear-gradient(45deg, #ff0000, #ff8000, #ffff00, #00ff00, #0000ff, #8000ff, #ff00ff);
+            background-size: 400% 400%;
+            z-index: 1;
+            filter: blur(30px);
+            opacity: 0.3;
+            animation: gradientBG 15s ease infinite;
+        }
+        
+        @keyframes gradientBG {
+            0% {
+                background-position: 0% 50%;
+            }
+            50% {
+                background-position: 100% 50%;
+            }
+            100% {
+                background-position: 0% 50%;
+            }
+        }
+        
+        /* Footer styles */
+        .footer {
+            text-align: center;
+            padding: 20px 0;
+            margin-top: 40px;
+            font-size: 14px;
+            color: #aaa;
+        }
+        
+        .footer p {
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <!-- Splash Screen -->
+    <div class="splash-screen" id="splashScreen">
+        <img id="splashLogo" class="splash-logo" alt="noveo AI Logo">
+    </div>
+
+    <div class="app-container" id="appContainer">
+        <div class="container">
+            <div class="sidebar">
+                <div class="logo-container">
+                    <img id="logo" alt="noveo AI Logo">
+                </div>
+                
+                <div class="form-group">
+                    <label for="title">주제 (선택사항)</label>
+                    <input type="text" id="title" name="title" placeholder="AI가 자동으로 생성합니다">
+                </div>
+                
+                <div class="form-group">
+                    <label for="name">설명 (선택사항)</label>
+                    <input type="text" id="name" name="name" placeholder="AI가 자동으로 생성합니다">
+                </div>
+                
+                <div class="form-group">
+                    <label for="characters">등장인물 (선택사항)</label>
+                    <input type="text" id="characters" name="characters" placeholder="AI가 자동으로 생성합니다">
+                </div>
+                
+                <div class="form-group">
+                    <label for="setting">시점 (선택사항)</label>
+                    <input type="text" id="setting" name="setting" placeholder="AI가 자동으로 생성합니다">
+                </div>
+                
+                <div class="form-group">
+                    <label>좋아하는 한번 소설을 써볼까요?</label>
+                </div>
+                
+                <button class="generate-btn" id="generateBtn">생성하기</button>
+                
+                <!-- Restricted Mode Toggle moved below generate button -->
+                <div class="toggle-switch-container">
+                    <label for="restrictedMode">금지모드</label>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="restrictedMode">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+            
+            <div class="main-content">
+                <div class="white-label">
+                    <div class="rainbow-bg"></div>
+                    <div class="textarea-container">
+                        <textarea id="novelContent" readonly placeholder="소설 제작시 내용과 제목이 나오는 곳"></textarea>
+                    </div>
+                    
+                    <div class="action-buttons">
+                        <div class="action-btn continue-btn" id="continueBtn">이어서쓰기</div>
+                        <div class="action-btn download-btn" id="downloadBtn">다운로드</div>
+                        <div class="action-btn veochat-btn" id="veochatBtn">veochat(beta)</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>noveoAI(beta)는 잘못된 내용의 소설을 실수로 생성할 수 있습니다.</p>
+            <p>Copyright © 2025 somac</p>
+        </div>
+    </div>
+    
+    <!-- Password Modal -->
+    <div class="password-modal" id="passwordModal">
+        <div class="password-modal-content">
+            <h3>금지모드 활성화</h3>
+            <p>금지모드를 활성화하려면 암호를 입력하세요.</p>
+            <input type="password" id="passwordInput" placeholder="암호 입력">
+            <div>
+                <button id="confirmPassword">확인</button>
+                <button id="cancelPassword">취소</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Chat Modal -->
+    <div class="chat-modal" id="chatModal">
+        <div class="chat-modal-content">
+            <div class="chat-header">
+                <h2>캐릭터와 대화하기</h2>
+                <span class="close-modal" id="closeChatModal">&times;</span>
+            </div>
+            
+            <div class="chat-characters" id="chatCharacters">
+                <!-- Character options will be added here dynamically -->
+            </div>
+            
+            <div class="chat-messages" id="chatMessages">
+                <!-- Chat messages will appear here -->
+                <div style="text-align: center; color: #666; padding: 20px;">
+                    캐릭터를 선택하여 대화를 시작하세요.
+                </div>
+            </div>
+            
+            <div class="chat-input">
+                <input type="text" id="chatInput" placeholder="메시지를 입력하세요..." disabled>
+                <button id="sendMessage" disabled>전송</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Constants
+        let RESTRICTED_MODE_PASSWORD = ""; // This will be set via environment variable
+        
+        // DOM Elements
+        const splashScreen = document.getElementById('splashScreen');
+        const appContainer = document.getElementById('appContainer');
+        const restrictedModeCheckbox = document.getElementById('restrictedMode');
+        const passwordModal = document.getElementById('passwordModal');
+        const passwordInput = document.getElementById('passwordInput');
+        const confirmPasswordBtn = document.getElementById('confirmPassword');
+        const cancelPasswordBtn = document.getElementById('cancelPassword');
+        const generateBtn = document.getElementById('generateBtn');
+        const novelContent = document.getElementById('novelContent');
+        const continueBtn = document.getElementById('continueBtn');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const veochatBtn = document.getElementById('veochatBtn');
+        const chatModal = document.getElementById('chatModal');
+        const closeChatModal = document.getElementById('closeChatModal');
+        const chatCharacters = document.getElementById('chatCharacters');
+        const chatMessages = document.getElementById('chatMessages');
+        const chatInput = document.getElementById('chatInput');
+        const sendMessageBtn = document.getElementById('sendMessage');
+        const logoImg = document.getElementById('logo');
+        const splashLogoImg = document.getElementById('splashLogo');
+        
+        // AI generated content examples
+        const aiTopics = ["시간 여행", "잃어버린 왕국", "마법의 책", "우주 탐험", "평행 세계", "신비한 숲"];
+        const aiDescriptions = ["시간을 초월한 사랑 이야기", "잊혀진 왕국을 찾아 떠나는 모험", "마법이 실존하는 세계에서의 생존기", "미지의 행성을 탐험하는 과학자들"];
+        const aiCharacters = ["알렉스, 소피아, 매튜", "리아, 카이, 엘렌, 제이크", "선장 윌리엄, 박사 킴, 탐험가 루크", "마법사 엘리아, 전사 테오, 정령 아리아"];
+        const aiViewpoints = ["1인칭 시점", "3인칭 시점", "다중 시점", "전지적 작가 시점"];
+        
+        // Generate random content for empty fields
+        function getRandomArrayItem(array) {
+            return array[Math.floor(Math.random() * array.length)];
+        }
+        
+        // Splash screen handling
+        document.addEventListener('DOMContentLoaded', function() {
+            // Show splash screen for 3 seconds
+            setTimeout(function() {
+                splashScreen.style.opacity = '0';
+                
+                setTimeout(function() {
+                    splashScreen.style.display = 'none';
+                    appContainer.style.opacity = '1';
+                }, 500);
+            }, 3000);
+        });
+        
+        // Check for environment variables
+        fetch('/api/getenv')
+            .then(response => response.json())
+            .then(data => {
+                // Set the password from environment variable
+                if (data && data.RESTRICTED_MODE_PASSWORD) {
+                    RESTRICTED_MODE_PASSWORD = data.RESTRICTED_MODE_PASSWORD;
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching environment variables:', error);
+            });
+        
+        // Event Listeners
+        restrictedModeCheckbox.addEventListener('click', function() {
+            if (!this.checked) {
+                passwordModal.style.display = 'none';
+                return;
+            }
+            
+            // Show password modal
+            passwordModal.style.display = 'flex';
+        });
+        
+        confirmPasswordBtn.addEventListener('click', function() {
+            const password = passwordInput.value;
+            if (password === RESTRICTED_MODE_PASSWORD) {
+                restrictedModeCheckbox.checked = true;
+                passwordModal.style.display = 'none';
+                passwordInput.value = '';
+                alert('금지모드가 활성화되었습니다.');
+            } else {
+                alert('잘못된 암호입니다.');
+                restrictedModeCheckbox.checked = false;
+            }
+        });
+        
+        cancelPasswordBtn.addEventListener('click', function() {
+            passwordModal.style.display = 'none';
+            restrictedModeCheckbox.checked = false;
+            passwordInput.value = '';
+        });
+        
+        generateBtn.addEventListener('click', function() {
+            let title = document.getElementById('title').value;
+            let description = document.getElementById('name').value;
+            let characters = document.getElementById('characters').value;
+            let viewpoint = document.getElementById('setting').value;
+            const restrictedMode = restrictedModeCheckbox.checked;
+            
+            // Auto-generate content for empty fields
+            if (!title) {
+                title = getRandomArrayItem(aiTopics);
+                document.getElementById('title').value = title;
+            }
+            
+            if (!description) {
+                description = getRandomArrayItem(aiDescriptions);
+                document.getElementById('name').value = description;
+            }
+            
+            if (!characters) {
+                characters = getRandomArrayItem(aiCharacters);
+                document.getElementById('characters').value = characters;
+            }
+            
+            if (!viewpoint) {
+                viewpoint = getRandomArrayItem(aiViewpoints);
+                document.getElementById('setting').value = viewpoint;
+            }
+            
+            // Simulate API call to generate novel
+            generateNovel(title, description, characters, viewpoint, restrictedMode);
+        });
+        
+        continueBtn.addEventListener('click', function() {
+            const currentContent = novelContent.value;
+            if (!currentContent) {
+                alert('먼저 소설을 생성해주세요.');
+                return;
+            }
+            
+            // Simulate API call to continue novel
+            continueNovel(currentContent);
+        });
+        
+        downloadBtn.addEventListener('click', function() {
+            const content = novelContent.value;
+            if (!content) {
+                alert('다운로드할 내용이 없습니다.');
+                return;
+            }
+            
+            // Create a blob and download the file
+            const blob = new Blob([content], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = '소설.txt';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+        
+        veochatBtn.addEventListener('click', function() {
+            const characters = document.getElementById('characters').value;
+            if (!characters) {
+                alert('등장인물을 먼저 입력해주세요.');
+                return;
+            }
+            
+            // Parse characters and create character options
+            const characterList = characters.split(',').map(char => char.trim());
+            chatCharacters.innerHTML = '';
+            characterList.forEach(character => {
+                const charElement = document.createElement('div');
+                charElement.classList.add('character-option');
+                charElement.textContent = character;
+                charElement.addEventListener('click', function() {
+                    // Remove selected class from all characters
+                    document.querySelectorAll('.character-option').forEach(el => {
+                        el.classList.remove('selected');
+                    });
+                    
+                    // Add selected class to clicked character
+                    this.classList.add('selected');
+                    
+                    // Enable chat input
+                    chatInput.disabled = false;
+                    sendMessageBtn.disabled = false;
+                    
+                    // Clear chat messages and add welcome message
+                    chatMessages.innerHTML = '';
+                    addChatMessage(character, `안녕하세요! 저는 ${character}입니다. 무엇을 도와드릴까요?`);
+                });
+                chatCharacters.appendChild(charElement);
+            });
+            
+            // Show chat modal
+            chatModal.style.display = 'flex';
+        });
+        
+        closeChatModal.addEventListener('click', function() {
+            chatModal.style.display = 'none';
+            chatInput.disabled = true;
+            sendMessageBtn.disabled = true;
+        });
+        
+        sendMessageBtn.addEventListener('click', sendChatMessage);
+        
+        chatInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendChatMessage();
+            }
+        });
+        
+        // Functions
+        function generateNovel(title, description, characters, viewpoint, restrictedMode) {
+            // Simulate loading
+            novelContent.value = "소설을 생성 중입니다...";
+            
+            // Create prompt based on inputs
+            let prompt = `제목: ${title}\n설명: ${description}\n등장인물: ${characters}\n시점: ${viewpoint}\n`;
+            
+            if (restrictedMode) {
+                prompt += "금지모드: 활성화\n";
+            }
+            
+            // Simulate API call to Grow API
+            setTimeout(() => {
+                // This is where you would make the actual API call
+                // For now, we'll just simulate a response
+                const sampleNovel = `${title}\n\n${generateSampleNovel(title, description, characters, viewpoint)}`;
+                novelContent.value = sampleNovel;
+            }, 1500);
+        }
+        
+        function continueNovel(currentContent) {
+            // Save current content
+            const savedContent = currentContent;
+            
+            // Show loading message
+            novelContent.value = savedContent + "\n\n소설을 이어서 생성 중입니다...";
+            
+            // Simulate API call
+            setTimeout(() => {
+                // Add additional content
+                const additionalContent = generateAdditionalContent();
+                novelContent.value = savedContent + "\n\n" + additionalContent;
+            }, 1500);
+        }
+        
+        function sendChatMessage() {
+            const message = chatInput.value.trim();
+            if (!message) return;
+            
+            // Get selected character
+            const selectedCharacter = document.querySelector('.character-option.selected');
+            if (!selectedCharacter) {
+                alert('먼저 캐릭터를 선택해주세요.');
+                return;
+            }
+            
+            const characterName = selectedCharacter.textContent;
+            
+            // Add user message
+            addChatMessage('사용자', message);
+            
+            // Clear input
+            chatInput.value = '';
+            
+            // Simulate character response
+            setTimeout(() => {
+                const response = simulateCharacterResponse(characterName, message);
+                addChatMessage(characterName, response);
+                
+                // Scroll to bottom
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }, 1000);
+        }
+        
+        function addChatMessage(sender, message) {
+            const messageDiv = document.createElement('div');
+            messageDiv.style.margin = '10px 0';
+            messageDiv.style.padding = '8px 12px';
+            messageDiv.style.borderRadius = '10px';
+            messageDiv.style.maxWidth = '80%';
+            
+            if (sender === '사용자') {
+                messageDiv.style.backgroundColor = '#e6f7ff';
+                messageDiv.style.marginLeft = 'auto';
+            } else {
+                messageDiv.style.backgroundColor = '#f0f0f0';
+                messageDiv.style.marginRight = 'auto';
+            }
+            
+            messageDiv.innerHTML = `<strong>${sender}</strong>: ${message}`;
+            chatMessages.appendChild(messageDiv);
+            
+            // Scroll to bottom
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+        
+        // Helper functions to simulate API responses
+        function generateSampleNovel(title, description, characters, viewpoint) {
+            // More elaborate sample to make it seem like AI generation
+            const characterArray = characters.split(',').map(char => char.trim());
+            const mainCharacter = characterArray[0];
+            
+            let story = `이야기는 ${description}에 관한 것이었습니다. ${mainCharacter}은(는) 주인공으로서 ${viewpoint}에서 이야기를 이끌어갔습니다.\n\n`;
+            
+            story += "제 1장\n\n";
+            
+            if (viewpoint.includes("1인칭")) {
+                story += `나는 창밖으로 흐르는 빗방울을 바라보며 깊은 생각에 잠겼다. 오늘은 특별한 날이었다. ${description}의 시작점이 될 거라고 느꼈다. 내 이름은 ${mainCharacter}, 평범한 삶을 살던 내가 이제 놀라운 모험에 뛰어들게 될 줄은 몰랐다.\n\n`;
+                
+                if (characterArray.length > 1) {
+                    story += `"${mainCharacter}, 준비됐어?" ${characterArray[1]}의 목소리가 내 생각을 깨트렸다. 나는 고개를 끄덕이며 미소를 지었다.\n\n"언제나 준비됐지." 내가 대답했다.`;
+                } else {
+                    story += `"이제 시작이다." 나는 스스로에게 중얼거렸다. 깊은 숨을 들이마시고 앞으로 나아갈 준비를 했다.`;
+                }
+            } else {
+                story += `새벽의 빛이 창문을 통해 방 안으로 스며들었다. ${mainCharacter}은(는) 눈을 떴고, 오늘이 특별한 날임을 직감했다. 그것은 바로 ${description}의 시작점이 될 것이다.\n\n`;
+                
+          if (characterArray.length > 1) {
+                    story += `"${mainCharacter}, 준비됐어?" ${characterArray[1]}이(가) 방문을 두드리며 물었다.\n\n"언제나 준비됐지." ${mainCharacter}은(는) 결의에 찬 표정으로 대답했다.`;
+                } else {
+                    story += `${mainCharacter}은(는) 창밖을 바라보며 깊은 생각에 잠겼다. 오늘부터 모든 것이 바뀔 것이라는 예감이 들었다.`;
+                }
+            }
+            
+            return story;
+        }
+        
+        function generateAdditionalContent() {
+            // 더 다양하고 흥미로운 추가 내용 생성
+            const additionalParagraphs = [
+                "그는 천천히 일어나 창밖을 바라보았다. 도시는 아직 깨어나지 않은 듯했지만, 그의 마음은 이미 모험으로 가득 차 있었다. 가방을 챙기고 문을 나서자, 새로운 세계가 그를 기다리고 있었다.",
+                
+                "그때 갑자기 하늘이 어두워지기 시작했다. 먹구름이 모여들더니 천둥소리가 울려퍼졌다. 이것은 좋은 징조일까, 나쁜 징조일까? 그는 잠시 망설였지만 이내 결심을 굳혔다. 어떤 일이 있어도 앞으로 나아가야만 했다.",
+                
+                "\"너는 네 운명을 받아들일 준비가 되었느냐?\" 갑자기 어디선가 들려오는 목소리에 그는 깜짝 놀랐다. 주변을 둘러보았지만 아무도 보이지 않았다. 그 목소리는 마치 바람처럼 그의 귓가를 스쳐 지나갔다.",
+                
+                "그가 걸음을 내딛자 발밑의 땅이 희미하게 빛나기 시작했다. 그것은 마치 길을 안내하는 것처럼 보였다. 그는 그 빛을 따라 걷기 시작했다. 어디로 향하는지 알 수 없었지만, 이것이 그의 여정의 시작임을 직감했다."
+            ];
+            
+            // 랜덤으로 두 개의 문단 선택하여 반환
+            const paragraph1 = additionalParagraphs[Math.floor(Math.random() * additionalParagraphs.length)];
+            let paragraph2;
+            
+            do {
+                paragraph2 = additionalParagraphs[Math.floor(Math.random() * additionalParagraphs.length)];
+            } while (paragraph1 === paragraph2); // 서로 다른 문단 선택
+            
+            return paragraph1 + "\n\n" + paragraph2;
+        }
+        
+        function simulateCharacterResponse(character, message) {
+            // 더 다양한 캐릭터 응답 생성
+            if (message.includes('안녕') || message.includes('반가워')) {
+                return `안녕하세요! 저는 ${character}입니다. 만나서 반갑습니다!`;
+            } else if (message.includes('누구') || message.includes('어떤 사람')) {
+                return `저는 이 소설의 등장인물 ${character}입니다. 소설 속에서 저는 중요한 역할을 맡고 있답니다. 더 알고 싶은 것이 있으신가요?`;
+            } else if (message.includes('좋아') || message.includes('취미')) {
+                const hobbies = ['독서', '음악 감상', '별 관찰', '요리', '등산', '그림 그리기', '춤', '명상'];
+                const randomHobby = hobbies[Math.floor(Math.random() * hobbies.length)];
+                return `저는 ${randomHobby}을(를) 좋아합니다. 제 성격과 잘 맞는 취미지요. 당신은 어떤 것을 좋아하시나요?`;
+            } else if (message.includes('목표') || message.includes('꿈')) {
+                return `제 목표는 이야기 속에서 진정한 자아를 찾는 것입니다. 모든 캐릭터는 자신만의 여정이 있지요. 저도 그 여정을 완성하고 싶습니다.`;
+            } else if (message.includes('도와') || message.includes('도움')) {
+                return `물론이죠! 제가 어떻게 도와드릴 수 있을까요? 이야기의 등장인물로서 제가 할 수 있는 모든 것을 공유하겠습니다.`;
+            } else if (message.includes('생각') || message.includes('의견')) {
+                return `흥미로운 질문이네요. ${character}로서 제 생각은... 모든 것에는 이유가 있다고 봅니다. 때로는 그 이유를 바로 알 수 없지만, 언젠가는 모든 것이 명확해질 거예요.`;
+            } else {
+                const responses = [
+                    `흥미로운 질문이네요! ${message.length > 15 ? '깊이 생각해볼 가치가 있는 주제입니다.' : '간단히 대답하기 어렵네요.'}`,
+                    `${character}로서 저는 ${message}에 대해 특별한 관점을 가지고 있어요. 더 이야기를 나누고 싶네요.`,
+                    `정말 좋은 질문입니다! 제 경험에 비추어 말씀드리자면...`,
+                    `그것에 대해서는 여러 생각이 있습니다. 하지만 가장 중요한 것은 진실성이라고 생각해요.`,
+                    `이야기 속에서 그런 질문들이 캐릭터를 성장시키죠. 감사합니다.`
+                ];
+                return responses[Math.floor(Math.random() * responses.length)];
+            }
+        }
+        
+        // Allow the logo to be set from outside
+        function setLogo(url) {
+            logoImg.src = url;
+            splashLogoImg.src = url;
+        }
+        
+        // Enable restricted mode for testing/development
+        function enableRestrictedMode() {
+            restrictedModeCheckbox.disabled = false;
+        }
+        
+        // 로고 설정 (기본 로고)
+        setLogo("https://via.placeholder.com/200x80?text=noveoAI");
+        
+        // Expose functions for external use
+        window.setLogo = setLogo;
+        window.enableRestrictedMode = enableRestrictedMode;
+    </script>
+</body>
+</html>
