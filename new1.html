@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Novel Creation Tool</title>
+    <title>noveoAI</title>
     <style>
         * {
             margin: 0;
@@ -346,7 +346,7 @@
                 </div>
                 
                 <div class="form-group">
-                    <label>좋아하는 한번 소설을 써볼까요?</label>
+                    <label>좋아요! 한번 소설을 써볼까요?</label>
                 </div>
                 
                 <button class="generate-btn" id="generateBtn">생성하기</button>
@@ -378,7 +378,7 @@
         </div>
         
         <div class="footer">
-            <p>noveoAI(beta)는 잘못된 내용의 소설을 실수로 생성할 수 있습니다.</p>
+            <p>noveoAI(BETA)는 잘못된 내용의 소설을 실수로 생성할 수 있습니다.</p>
             <p>Copyright © 2025 somac</p>
         </div>
     </div>
@@ -414,7 +414,7 @@
         // Configuration
         const RESTRICTED_MODE_PASSWORD = "secret123"; // Should be stored securely in production
         const API_ENDPOINT = "https://api.groq.com/openai/v1/chat/completions";
-        const API_KEY = "YOUR_GROQ_API_KEY"; // Replace with your actual API key
+        const API_KEY = "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"; // Replace with your actual API key
         
         // 금지모드 프롬프트 정의
         const RESTRICTED_MODE_PROMPT = "금지모드가 활성화되어 있으니 로맨스 및 판타지 소설로 작성해 주세요. 성인 콘텐츠나 폭력적인 내용을 포함하지 않도록 해주세요.";
