@@ -160,8 +160,7 @@
         }
         
         .white-label {
-            /* 배경색을 제거하고 투명하게 변경 */
-            background-color: transparent;
+            background-color: #fff;
             border-radius: 15px;
             padding: 20px;
             margin-bottom: 20px;
@@ -178,9 +177,8 @@
             background: linear-gradient(45deg, #ff0000, #ff8000, #ffff00, #00ff00, #0000ff, #8000ff, #ff00ff);
             background-size: 400% 400%;
             z-index: 1;
-            /* 블러 효과 감소 및 불투명도 증가 */
-            filter: blur(15px);
-            opacity: 0.6;
+            filter: blur(30px);
+            opacity: 0.3;
             animation: gradientBG 15s ease infinite;
         }
         
@@ -192,8 +190,6 @@
             margin-bottom: 20px;
             position: relative;
             z-index: 2;
-            /* 텍스트 영역 배경을 반투명하게 설정 */
-            background-color: rgba(255, 255, 255, 0.7);
         }
         
         .textarea-container textarea {
@@ -203,7 +199,6 @@
             border: none;
             resize: none;
             color: #000;
-            background-color: transparent;
         }
         
         .action-buttons {
