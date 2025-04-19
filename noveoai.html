@@ -160,7 +160,7 @@
         }
         
         .white-label {
-            background-color: #fff;
+            background-color: rgba(255, 255, 255, 0.1);  /* 배경을 투명하게 변경 */
             border-radius: 15px;
             padding: 20px;
             margin-bottom: 20px;
@@ -185,11 +185,12 @@
         .textarea-container {
             width: 100%;
             height: 500px;
-            border: 1px solid #ccc;
+            border: 1px solid rgba(204, 204, 204, 0.5);  /* 테두리도 약간 투명하게 */
             border-radius: 5px;
             margin-bottom: 20px;
             position: relative;
             z-index: 2;
+            background-color: rgba(255, 255, 255, 0.1);  /* 텍스트 영역도 투명하게 */
         }
         
         .textarea-container textarea {
@@ -198,7 +199,8 @@
             padding: 10px;
             border: none;
             resize: none;
-            color: #000;
+            color: #fff;  /* 텍스트 색상을 흰색으로 변경 */
+            background-color: transparent;  /* 배경을 투명하게 */
         }
         
         .action-buttons {
@@ -233,10 +235,25 @@
         }
         
         .veochat-btn {
-            background-color: #000;
-            color: #fff;
+            background-color: #fff;
+            color: #000;
             border: none;
             z-index: 10; /* 높은 z-index 값 설정 */
+            position: relative;
+        }
+        
+        .veochat-btn::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(45deg, #ff0000, #ff8000, #ffff00, #00ff00, #0000ff, #8000ff, #ff00ff);
+            background-size: 400% 400%;
+            z-index: -1;
+            border-radius: 27px;
+            animation: glowingBorder 15s linear infinite;
         }
         
         .loading-spinner {
@@ -478,6 +495,7 @@
                 
                 <div class="form-group">
                     <label>좋아요! 한번 소설을 써볼까요?</label>
+                    <p style="font-size: 14px; color: #aaa; margin-top: 5px;">* 입력하지 않은 부분은 창의적으로 작성됩니다.</p>
                 </div>
                 
                 <button class="generate-btn" id="generateBtn">생성하기</button>
@@ -501,8 +519,8 @@
                     </div>
                     
                     <div class="action-buttons">
-                        <div class="action-btn continue-btn" id="continueBtn">이어서쓰기</div>
                         <div class="action-btn veochat-btn" id="veochatBtn">veochat</div>
+                        <div class="action-btn continue-btn" id="continueBtn">이어서쓰기</div>
                         <div class="action-btn download-btn" id="downloadBtn">다운로드</div>
                     </div>
                 </div>
@@ -553,7 +571,6 @@
     
     <!-- Hidden file input for image upload -->
     <input type="file" id="imageInput" accept="image/*" style="display: none;">
-    
     <script>
 // DOM Elements
 document.addEventListener('DOMContentLoaded', function() {
