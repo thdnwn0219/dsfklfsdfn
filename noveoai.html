@@ -1,3 +1,560 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>noveoAI</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Arial', sans-serif;
+        }
+        
+        body {
+            background-color: #000;
+            color: #fff;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        /* Splash Screen */
+        .splash-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            transition: opacity 0.5s ease;
+        }
+        
+        .splash-logo {
+            max-width: 300px;
+            opacity: 0;
+            animation: fadeIn 0.5s ease forwards;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .app-container {
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+        
+        .container {
+            display: flex;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .sidebar {
+            width: 30%;
+            background-color: #000;
+            padding: 20px;
+            border-radius: 10px;
+        }
+        
+        .main-content {
+            width: 70%;
+            padding: 20px;
+            position: relative;
+        }
+        
+        .logo-container {
+            margin-bottom: 30px;
+        }
+        
+        .logo-container img {
+            max-width: 200px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 18px;
+        }
+        
+        .form-group input, .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #333;
+            border-radius: 5px;
+            background-color: #fff;
+            color: #000;
+        }
+        
+        .generate-btn {
+            background-color: #fff;
+            color: #000;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            display: block;
+            width: 100%;
+            margin-top: 20px;
+            position: relative;
+            font-weight: bold;
+        }
+        
+        .generate-btn::before {
+            content: '';
+            position: absolute;
+            top: -3px;
+            left: -3px;
+            right: -3px;
+            bottom: -3px;
+            background: linear-gradient(45deg, #ff0000, #ff8000, #ffff00, #00ff00, #0000ff, #8000ff, #ff00ff);
+            background-size: 400% 400%;
+            z-index: -1;
+            border-radius: 28px;
+            animation: glowingBorder 15s linear infinite;
+        }
+        
+        @keyframes glowingBorder {
+            0% {
+                background-position: 0% 50%;
+            }
+            50% {
+                background-position: 100% 50%;
+            }
+            100% {
+                background-position: 0% 50%;
+            }
+        }
+        
+        /* 금지모드 체크박스 스타일 */
+        .restricted-mode-container {
+            margin-top: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .restricted-mode-container label {
+            margin-right: 10px;
+            font-size: 16px;
+        }
+        
+        .restricted-mode-checkbox {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+        
+        .white-label {
+            background-color: #fff;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .rainbow-bg {
+            position: absolute;
+            top: -50px;
+            left: -50px;
+            right: -50px;
+            bottom: -50px;
+            background: linear-gradient(45deg, #ff0000, #ff8000, #ffff00, #00ff00, #0000ff, #8000ff, #ff00ff);
+            background-size: 400% 400%;
+            z-index: 1;
+            filter: blur(30px);
+            opacity: 0.3;
+            animation: gradientBG 15s ease infinite;
+        }
+        
+        .textarea-container {
+            width: 100%;
+            height: 500px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .textarea-container textarea {
+            width: 100%;
+            height: 100%;
+            padding: 10px;
+            border: none;
+            resize: none;
+            color: #000;
+        }
+        
+        .action-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            position: relative;
+            z-index: 5; /* 더 높은 z-index 값 설정 */
+        }
+        
+        .action-btn {
+            padding: 12px 25px;
+            border-radius: 25px;
+            font-weight: bold;
+            cursor: pointer;
+            text-align: center;
+            position: relative; /* 추가된 속성 */
+        }
+        
+        .continue-btn {
+            background-color: #000;
+            color: #fff;
+            border: none;
+            z-index: 10; /* 높은 z-index 값 설정 */
+        }
+        
+        .download-btn {
+            background-color: #000;
+            color: #fff;
+            border: none;
+            z-index: 10; /* 높은 z-index 값 설정 */
+        }
+        
+        .veochat-btn {
+            background-color: #000;
+            color: #fff;
+            border: none;
+            z-index: 10; /* 높은 z-index 값 설정 */
+        }
+        
+        .loading-spinner {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .loading-spinner img {
+            width: 50px;
+            height: 50px;
+        }
+        
+        @keyframes gradientBG {
+            0% {
+                background-position: 0% 50%;
+            }
+            50% {
+                background-position: 100% 50%;
+            }
+            100% {
+                background-position: 0% 50%;
+            }
+        }
+        
+        /* Password Modal */
+        .password-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            z-index: 100;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .password-modal-content {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            width: 300px;
+            text-align: center;
+            color: #000;
+        }
+        
+        .password-modal input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        
+        .password-modal button {
+            padding: 10px 20px;
+            background-color: #000;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        
+        /* Chat Modal styles */
+        .chat-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            z-index: 100;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .chat-modal-content {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            width: 80%;
+            max-width: 800px;
+            height: 80%;
+            color: #000;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .chat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .chat-title {
+            font-size: 20px;
+            font-weight: bold;
+        }
+        
+        .close-chat {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+        }
+        
+        .chat-messages {
+            flex-grow: 1;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            padding: 10px;
+            margin-bottom: 15px;
+            overflow-y: auto;
+            background-color: #f9f9f9;
+        }
+        
+        .chat-input-container {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .chat-input {
+            flex-grow: 1;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        
+        .chat-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .chat-btn {
+            padding: 10px 15px;
+            background-color: #000;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        
+        .character-select {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            margin-right: 10px;
+        }
+        
+        .user-message {
+            text-align: right;
+            margin: 5px 0;
+            padding: 8px 12px;
+            background-color: #e1f5fe;
+            border-radius: 15px 15px 0 15px;
+            display: inline-block;
+            max-width: 80%;
+            float: right;
+            clear: both;
+        }
+        
+        .bot-message {
+            text-align: left;
+            margin: 5px 0;
+            padding: 8px 12px;
+            background-color: #f1f1f1;
+            border-radius: 15px 15px 15px 0;
+            display: inline-block;
+            max-width: 80%;
+            float: left;
+            clear: both;
+        }
+        
+        .message-container {
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+        
+        .uploaded-image {
+            max-width: 200px;
+            max-height: 200px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        
+        /* Footer styles */
+        .footer {
+            text-align: center;
+            padding: 20px 0;
+            margin-top: 40px;
+            font-size: 14px;
+            color: #aaa;
+        }
+        
+        .footer p {
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <!-- Splash Screen -->
+    <div class="splash-screen" id="splashScreen">
+        <img src="noveoailogo.png" class="splash-logo" alt="noveo AI Logo">
+    </div>
+
+    <div class="app-container" id="appContainer">
+        <div class="container">
+            <div class="sidebar">
+                <div class="logo-container">
+                    <img src="noveoailogo.png" alt="noveo AI Logo">
+                </div>
+                
+                <div class="form-group">
+                    <label for="title">주제</label>
+                    <input type="text" id="title" name="title">
+                </div>
+                
+                <div class="form-group">
+                    <label for="name">설명</label>
+                    <input type="text" id="name" name="name">
+                </div>
+                
+                <div class="form-group">
+                    <label for="characters">등장인물</label>
+                    <input type="text" id="characters" name="characters">
+                </div>
+                
+                <div class="form-group">
+                    <label for="setting">시점</label>
+                    <input type="text" id="setting" name="setting">
+                </div>
+                
+                <div class="form-group">
+                    <label>좋아요! 한번 소설을 써볼까요?</label>
+                </div>
+                
+                <button class="generate-btn" id="generateBtn">생성하기</button>
+                
+                <!-- 금지모드 체크박스 - 생성하기 버튼 아래에 배치 -->
+                <div class="restricted-mode-container">
+                    <label for="restrictedMode">금지모드</label>
+                    <input type="checkbox" id="restrictedMode" class="restricted-mode-checkbox">
+                </div>
+            </div>
+            
+            <div class="main-content">
+                <div class="white-label">
+                    <div class="rainbow-bg"></div>
+                    <div class="loading-spinner" id="loadingSpinner">
+                        <img src="noveoailogo.png" alt="Loading...">
+                        <p>소설을 생성 중입니다...</p>
+                    </div>
+                    <div class="textarea-container">
+                        <textarea id="novelContent" readonly placeholder="소설 제작시 내용과 제목이 나오는 곳"></textarea>
+                    </div>
+                    
+                    <div class="action-buttons">
+                        <div class="action-btn continue-btn" id="continueBtn">이어서쓰기</div>
+                        <div class="action-btn veochat-btn" id="veochatBtn">veochat</div>
+                        <div class="action-btn download-btn" id="downloadBtn">다운로드</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>noveoAI(BETA)는 잘못된 내용의 소설을 생성할 수 있습니다.</p>
+            <p>Copyright © 2025 somac</p>
+        </div>
+    </div>
+    
+    <!-- Password Modal -->
+    <div class="password-modal" id="passwordModal">
+        <div class="password-modal-content">
+            <h3>금지모드 활성화</h3>
+            <p>금지모드를 활성화하려면 암호를 입력하세요.</p>
+            <input type="password" id="passwordInput" placeholder="암호 입력">
+            <div>
+                <button id="confirmPassword">확인</button>
+                <button id="cancelPassword">취소</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Chat Modal -->
+    <div class="chat-modal" id="chatModal">
+        <div class="chat-modal-content">
+            <div class="chat-header">
+                <div class="chat-title">소설 캐릭터와 대화하기</div>
+                <button class="close-chat" id="closeChat">&times;</button>
+            </div>
+            
+            <div class="chat-messages" id="chatMessages"></div>
+            
+            <div class="chat-input-container">
+                <select class="character-select" id="characterSelect">
+                    <!-- Options will be dynamically populated -->
+                </select>
+                <input type="text" class="chat-input" id="messageInput" placeholder="메시지를 입력하세요...">
+                <div class="chat-buttons">
+                    <button class="chat-btn" id="uploadImageBtn">이미지 업로드</button>
+                    <button class="chat-btn" id="sendMessageBtn">전송</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Hidden file input for image upload -->
+    <input type="file" id="imageInput" accept="image/*" style="display: none;">
+    
+    <script>
 // DOM Elements
 document.addEventListener('DOMContentLoaded', function() {
     const splashScreen = document.getElementById('splashScreen');
@@ -465,3 +1022,6 @@ ${currentNovelContent.slice(0, 1500)}...
         generateNovel(title, description, characters, viewpoint, restrictedMode);
     });
 });
+    </script>
+</body>
+</html>
