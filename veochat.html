@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Groq AI Chat</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        #chat-container {
+            height: 500px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 10px;
+            overflow-y: auto;
+            margin-bottom: 10px;
+            background-color: #f9f9f9;
+        }
+        #input-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        #message-input {
+            flex-grow: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .user-message {
+            background-color: #e3f2fd;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 10px;
+            max-width: 80%;
+            margin-left: auto;
+            word-wrap: break-word;
+        }
+        .assistant-message {
+            background-color: #f1f1f1;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 10px;
+            max-width: 80%;
+            word-wrap: break-word;
+        }
+        .image-preview {
+            max-width: 200px;
+            max-height: 200px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        #status {
+            color: #666;
+            margin-bottom: 10px;
+            font-style: italic;
+        }
+        .download-button {
+            margin-top: 10px;
+            background-color: #2196F3;
+        }
+        .download-button:hover {
+            background-color: #0b7dda;
+        }
+        .clear-button {
+            background-color: #f44336;
+        }
+        .clear-button:hover {
+            background-color: #d32f2f;
+        }
+    </style>
+</head>
+<body>
+    <h1>Groq AI Chat</h1>
+    <div id="status">Ready to chat</div>
+    <div id="chat-container"></div>
+    <div id="input-container">
+        <input type="text" id="message-input" placeholder="Type your message here..." autocomplete="off">
+        <button id="send-button">Send</button>
+        <button id="upload-button">Upload Image</button>
+    </div>
+    <div id="controls">
+        <button id="download-button" class="download-button">Download Chat History</button>
+        <button id="clear-button" class="clear-button">Clear Chat</button>
+    </div>
+    <input type="file" id="image-input" accept="image/*" style="display: none">
+
+    <script>
+        // Global variables to store chat history and image data
+        let chatHistory = [];
+        let imageDataUrl = null;
+
+        // DOM elements
+        const chatContainer = document.getElementById('chat-container');
+        const messageInput = document.getElementById('message-input');
+        const sendButton = document.getElementById('send-button');
+        const uploadButton = document.getElementById('upload-button');
+        const imageInput = document.getElementById('image-input');
+        const statusDiv = document.getElementById('status');
+        const downloadButton = document.getElementById('download-button');
+        const clearButton = document.getElementById('clear-button');
+
+        // Add event listeners
+        sendButton.addEventListener('click', sendMessage);
+        messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMessage();
+        });
+        uploadButton.addEventListener('click', () => imageInput.click());
+        imageInput.addEventListener('change', handleImageUpload);
+        downloadButton.addEventListener('click', downloadChatHistory);
+        clearButton.addEventListener('click', clearChat);
+
+        // Load chat history from localStorage if available
+        function loadChatHistory() {
+            const savedHistory = localStorage.getItem('groqChatHistory');
+            if (savedHistory) {
+                chatHistory = JSON.parse(savedHistory);
+                
+                // Display loaded messages
+                chatHistory.forEach(msg => {
+                    if (msg.role === 'user') {
+                        const textContent = msg.content.find(item => item.type === 'text')?.text || '';
+                        const imageContent = msg.content.find(item => item.type === 'image_url')?.image_url?.url;
+                        
+                        addMessageToChat('user', textContent, imageContent);
+                    } else if (msg.role === 'assistant') {
+                        addMessageToChat('assistant', msg.content);
+                    }
+                });
+                
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            }
+        }
+
+        // Save chat history to localStorage
+        function saveChatHistory() {
+            localStorage.setItem('groqChatHistory', JSON.stringify(chatHistory));
+        }
+
+        // Clear chat history
+        function clearChat() {
+            chatHistory = [];
+            chatContainer.innerHTML = '';
+            imageDataUrl = null;
+            localStorage.removeItem('groqChatHistory');
+            statusDiv.textContent = 'Chat cleared';
+        }
+
+        // Download chat history as a text file
+        function downloadChatHistory() {
+            // Format chat history for download
+            let textContent = 'Groq AI Chat History\n\n';
+            
+            chatHistory.forEach(msg => {
+                if (msg.role === 'user') {
+                    const textContent = msg.content.find(item => item.type === 'text')?.text || '';
+                    textContent += `User: ${textContent}\n`;
+                    
+                    if (msg.content.some(item => item.type === 'image_url')) {
+                        textContent += '[Image uploaded]\n';
+                    }
+                } else if (msg.role === 'assistant') {
+                    textContent += `Assistant: ${msg.content}\n`;
+                }
+                textContent += '\n';
+            });
+            
+            const blob = new Blob([textContent], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'groq-chat-history.txt';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // Handle image upload
+        function handleImageUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    imageDataUrl = e.target.result;
+                    statusDiv.textContent = 'Image uploaded successfully';
+                    
+                    // Create image preview in status area
+                    const previewImg = document.createElement('img');
+                    previewImg.src = imageDataUrl;
+                    previewImg.className = 'image-preview';
+                    chatContainer.appendChild(previewImg);
+                    chatContainer.scrollTop = chatContainer.scrollHeight;
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        // Add a message to the chat UI
+        function addMessageToChat(role, text, imageUrl = null) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = role === 'user' ? 'user-message' : 'assistant-message';
+            
+            // If there's an image from the user
+            if (role === 'user' && imageUrl) {
+                const img = document.createElement('img');
+                img.src = imageUrl;
+                img.className = 'image-preview';
+                chatContainer.appendChild(img);
+            }
+            
+            // Add the text content
+            const prefix = role === 'user' ? '👤 You: ' : '🤖 Assistant: ';
+            messageDiv.textContent = prefix + text;
+            
+            chatContainer.appendChild(messageDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        // Send message to Groq API
+        async function sendMessage() {
+            const userText = messageInput.value.trim();
+            if (!userText && !imageDataUrl) return;
+            
+            // Clear input field
+            messageInput.value = '';
+            
+            // Add user message to UI
+            addMessageToChat('user', userText, imageDataUrl);
+            
+            // Prepare message content
+            const content = [{ type: 'text', text: userText }];
+            if (imageDataUrl) {
+                content.push({ type: 'image_url', image_url: { url: imageDataUrl } });
+            }
+            
+            // Add to chat history
+            chatHistory.push({ role: 'user', content: content });
+            
+            // Set status
+            statusDiv.textContent = 'Waiting for response...';
+            
+            try {
+                // In a real application, you would make an API call to your backend server here
+                // The server would then forward the request to Groq API with your API key
+                // This is to keep your API key secure and not expose it in client-side code
+                
+                // Example of how you might structure the API call (server-side code):
+                /*
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        messages: chatHistory,
+                        model: "meta-llama/llama-4-scout-17b-16e-instruct",
+                        temperature: 1,
+                        max_completion_tokens: 1024,
+                        top_p: 1
+                    }),
+                });
+                
+                if (!response.ok) {
+                    throw new Error('API request failed');
+                }
+                */
+                
+                // For demonstration purposes, we'll simulate a response
+                // In a real app, you would get this from the Groq API via your backend
+                statusDiv.textContent = 'Processing...';
+                
+                // Simulate receiving a streaming response
+                setTimeout(() => {
+                    const assistantResponse = "This is a simulated response. In a real application, this would be the actual response from the Groq API. For security reasons, API calls should be handled through a backend server to protect your API key.";
+                    
+                    // Add assistant response to UI
+                    addMessageToChat('assistant', assistantResponse);
+                    
+                    // Add to chat history
+                    chatHistory.push({ role: 'assistant', content: assistantResponse });
+                    
+                    // Save chat history
+                    saveChatHistory();
+                    
+                    // Reset image data after sending
+                    imageDataUrl = null;
+                    
+                    // Update status
+                    statusDiv.textContent = 'Ready to chat';
+                }, 1000);
+                
+            } catch (error) {
+                console.error('Error:', error);
+                statusDiv.textContent = 'Error: Failed to get response';
+                
+                // Add error message to chat
+                const errorMessage = `Sorry, there was an error processing your request: ${error.message}`;
+                addMessageToChat('assistant', errorMessage);
+            }
+        }
+
+        // Load chat history when the page loads
+        window.addEventListener('DOMContentLoaded', loadChatHistory);
+    </script>
+</body>
+</html>
