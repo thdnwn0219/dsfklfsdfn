@@ -730,7 +730,7 @@ Base64 이미지: ${base64Image}`
                 'Authorization': `Bearer ${groqApiKey}`
             },
             body: JSON.stringify({
-                model: "llama-3.1-70b-versatile",  // Groq에서 지원하는 최신 모델로 변경
+                model: "meta-llama/llama-4-scout-17b-16e-instruct",  // Groq에서 지원하는 최신 모델로 변경
                 messages: messages,
                 temperature: 0.3,
                 max_tokens: 500,
