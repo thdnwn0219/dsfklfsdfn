@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>noveoAI</title>
+    <style>
+        :root {
+            --primary-bg: #000000;
+            --card-bg: #ffffff;
+            --primary-text: #000000;
+            --light-text: #ffffff;
+            --input-bg: #ffffff;
+            --input-border: #e0e0e0;
+            --button-bg: #000000;
+            --button-text: #ffffff;
+            --slider-track: #e0e0e0;
+            --slider-thumb: #000000;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'AppleSDGothicNeo', 'Noto Sans KR', sans-serif;
+            background-color: var(--primary-bg);
+            color: var(--primary-text);
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+        }
+
+        .logo-img {
+            height: 30px;
+            margin-right: 5px;
+        }
+
+        .logo-beta {
+            font-size: 10px;
+            background-color: var(--light-text);
+            color: var(--primary-bg);
+            padding: 1px 3px;
+            border-radius: 2px;
+            vertical-align: top;
+            margin-left: 2px;
+        }
+
+        .user-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .user-button, .logout-button {
+            background-color: var(--light-text);
+            color: var(--primary-bg);
+            border: none;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .logout-button {
+            background-color: #f0f0f0;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 15px;
+            margin: 10px 20px;
+            padding: 20px;
+            flex: 1;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        .form-group input, .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--input-border);
+            border-radius: 5px;
+            font-size: 16px;
+        }
+
+        .button {
+            background-color: var(--button-bg);
+            color: var(--button-text);
+            border: none;
+            padding: 12px;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: bold;
+            width: 100%;
+            cursor: pointer;
+            margin-top: 15px;
+        }
+
+        .toggle-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin: 15px 0;
+        }
+
+        .toggle {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 24px;
+        }
+
+        .toggle input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 24px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 20px;
+            width: 20px;
+            left: 2px;
+            bottom: 2px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: #000;
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+
+        .screen {
+            display: none;
+            flex-direction: column;
+            flex: 1;
+        }
+
+        .screen.active {
+            display: flex;
+        }
+
+        .footer {
+            padding: 10px;
+            text-align: center;
+            font-size: 12px;
+            color: #666;
+        }
+
+        .novel-output {
+            white-space: pre-wrap;
+            line-height: 1.5;
+            margin-top: 20px;
+        }
+
+        .loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(255, 255, 255, 0.8);
+        }
+
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-radius: 50%;
+            border-top: 4px solid #000;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .bottom-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .bottom-buttons button {
+            flex: 1;
+            padding: 10px;
+            border-radius: 20px;
+            border: none;
+            background-color: #000;
+            color: white;
+            font-weight: bold;
+        }
+
+        .intensity-slider-container {
+            background-color: rgba(255, 255, 255, 0.95);
+            border-radius: 10px;
+            padding: 20px;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80%;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            z-index: 10;
+        }
+
+        .intensity-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+        }
+
+        .intensity-slider {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .slider-track {
+            width: 100%;
+            height: 2px;
+            background-color: var(--slider-track);
+            position: relative;
+            margin: 30px 0;
+        }
+
+        .slider-points {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            position: relative;
+        }
+
+        .slider-point {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background-color: var(--slider-track);
+            border: 2px solid white;
+            position: relative;
+            top: -7px;
+            cursor: pointer;
+        }
+
+        .slider-point.active {
+            background-color: var(--slider-thumb);
+        }
+
+        .slider-labels {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .premium-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: linear-gradient(45deg, #FFC107, #FF5722);
+            color: white;
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .intensity-button {
+            width: 100%;
+            padding: 12px;
+            background-color: #000;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            font-weight: bold;
+            margin-top: 30px;
+        }
+
+        .copyright {
+            color: #555;
+            font-size: 12px;
+            text-align: center;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+
+        .page-indicator {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #ccc;
+            margin: 0 5px;
+        }
+
+        .indicator.active {
+            background-color: #000;
+        }
+
+        .premium-feature {
+            display: none;
+        }
+
+        .veochat-tag {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background-color: rgba(255, 255, 255, 0.7);
+            border-radius: 15px;
+            padding: 5px 10px;
+            font-size: 12px;
+        }
+
+        .disclaimer {
+            font-size: 10px;
+            color: #777;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        /* Splash Screen Styles */
+        #splash-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #000000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            transition: opacity 0.3s ease-out;
+        }
+
+        .splash-logo {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .splash-logo-img {
+            max-width: 250px;
+            height: auto;
+        }
+    </style>
+</head>
+<body>
+    <!-- Splash Screen -->
+    <div id="splash-screen">
+        <div class="splash-logo">
+            <img id="splash-logo-img" class="splash-logo-img" src="" alt="noveoAI Logo">
+        </div>
+    </div>
+
+    <!-- Login Screen -->
+    <div id="login-screen" class="screen">
+        <div class="header">
+            <div class="logo">
+                <img id="header-logo" class="logo-img" src="" alt="noveoAI Logo">
+                <sup class="logo-beta">BETA</sup>
+            </div>
+        </div>
+        <div class="card">
+            <h2 style="margin-bottom: 30px;">로그인</h2>
+            <div class="form-group">
+                <label for="login-id">아이디</label>
+                <input type="text" id="login-id" placeholder="아이디를 입력하세요">
+            </div>
+            <div class="form-group">
+                <label for="login-pw">비밀번호</label>
+                <input type="password" id="login-pw" placeholder="비밀번호를 입력하세요">
+            </div>
+            <button id="login-button" class="button">로그인</button>
+
+            <div id="login-error" class="error-message hidden" style="color: red; margin-top: 10px; text-align: center;"></div>
+
+            <p style="text-align: center; margin-top: 20px; font-size: 12px;">ⓘ한번로 회원가입이 필요합니다.</p>
+        </div>
+        <div class="copyright">
+            Copyright © 2025 eomac
+        </div>
+    </div>
+
+    <!-- Novel Settings Screen -->
+    <div id="novel-settings-screen" class="screen">
+        <div class="header">
+            <div class="logo">
+                <img class="logo-img" src="" alt="noveoAI Logo">
+                <sup class="logo-beta">BETA</sup>
+            </div>
+            <div class="user-actions">
+                <button id="user-button" class="user-button">사용자 님</button>
+                <button id="logout-button" class="logout-button">로그아웃</button>
+            </div>
+        </div>
+        <div class="card">
+            <div id="premium-badge" class="premium-badge hidden">프리미엄</div>
+            
+            <div class="form-group">
+                <label for="novel-topic">주제</label>
+                <input type="text" id="novel-topic" placeholder="예: 판타지, SF, 로맨스 등">
+            </div>
+            <div class="form-group">
+                <label for="novel-description">설명</label>
+                <input type="text" id="novel-description" placeholder="예: 짧은 이야기, 긴 소설, 에피소드 등">
+            </div>
+            <div class="form-group">
+                <label for="novel-characters">등장인물</label>
+                <input type="text" id="novel-characters" placeholder="예: 주인공, 친구, 반대자 등">
+            </div>
+            <div class="form-group">
+                <label for="novel-perspective">시점</label>
+                <input type="text" id="novel-perspective" placeholder="예: 1인칭, 3인칭 등">
+            </div>
+
+            <div id="restricted-mode-toggle" class="toggle-container premium-feature">
+                <label for="restricted-mode">금지모드</label>
+                <label class="toggle">
+                    <input type="checkbox" id="restricted-mode">
+                    <span class="slider"></span>
+                </label>
+            </div>
+
+            <button id="intensity-setting-button" class="button premium-feature">수위 설정</button>
+            <button id="generate-button" class="button">생성하기</button>
+
+            <div id="intensity-modal" class="intensity-slider-container hidden">
+                <div class="intensity-header">
+                    <h3>수위</h3>
+                </div>
+                <div class="intensity-slider">
+                    <div class="slider-track"></div>
+                    <div class="slider-points">
+                        <div class="slider-point active" data-value="1"></div>
+                        <div class="slider-point" data-value="2"></div>
+                        <div class="slider-point" data-value="3"></div>
+                    </div>
+                    <div class="slider-labels">
+                        <span>낮음</span>
+                        <span>중간</span>
+                        <span>높음</span>
+                    </div>
+                </div>
+                <button id="intensity-confirm" class="intensity-button">설정완료</button>
+            </div>
+
+            <div id="loading" class="loading hidden">
+                <div class="spinner"></div>
+                <p style="margin-top: 10px;">소설을 생성하는 중입니다...</p>
+            </div>
+        </div>
+        <div class="copyright">
+            Copyright © 2025 eomac
+        </div>
+    </div>
+
+    <!-- Novel Result Screen -->
+    <div id="novel-result-screen" class="screen">
+        <div class="header">
+            <div class="logo">
+                <img class="logo-img" src="" alt="noveoAI Logo">
+                <sup class="logo-beta">BETA</sup>
+            </div>
+            <div class="user-actions">
+                <button id="result-user-button" class="user-button">사용자 님</button>
+                <button id="result-logout-button" class="logout-button">로그아웃</button>
+            </div>
+        </div>
+        <div class="card">
+            <div id="novel-content" class="novel-output">
+                소설 제작시 내용과 제목이 나오는 곳
+            </div>
+            <div class="bottom-buttons">
+                <button id="save-button">이어쓰기</button>
+                <button id="back-button">다운로드</button>
+            </div>
+            <div class="veochat-tag">
+                veochat(beta)
+            </div>
+            <div class="disclaimer">
+                ⓘnoveoAI(BETA)는 창작된 내용의 소설을 생성 할 수 있습니다.
+            </div>
+        </div>
+        <div class="copyright">
+            Copyright © 2025 eomac
+        </div>
+    </div>
+
+    <div class="page-indicator">
+        <div class="indicator active" data-screen="login-screen"></div>
+        <div class="indicator" data-screen="novel-settings-screen"></div>
+        <div class="indicator" data-screen="novel-result-screen"></div>
+    </div>
+
+    <script>
+        // Environment variables would be injected during build
+        // For testing purposes, hardcoded values (you'll replace these with env vars)
+        const CREDENTIALS = {
+            'user1': 'password1',
+            'admin': 'admin123'
+        };
+        
+        const PREMIUM_USERS = ['admin'];
+        
+        // Variables
+        let currentUser = null;
+        let isPremium = false;
+        let restrictedMode = false;
+        let intensityLevel = 1;
+        
+        // DOM Elements
+        const splashScreen = document.getElementById('splash-screen');
+        const loginScreen = document.getElementById('login-screen');
+        const novelSettingsScreen = document.getElementById('novel-settings-screen');
+        const novelResultScreen = document.getElementById('novel-result-screen');
+        const loginButton = document.getElementById('login-button');
+        const loginId = document.getElementById('login-id');
+        const loginPw = document.getElementById('login-pw');
+        const loginError = document.getElementById('login-error');
+        const userButton = document.getElementById('user-button');
+        const resultUserButton = document.getElementById('result-user-button');
+        const logoutButton = document.getElementById('logout-button');
+        const resultLogoutButton = document.getElementById('result-logout-button');
+        const premiumBadge = document.getElementById('premium-badge');
+        const restrictedModeToggle = document.getElementById('restricted-mode-toggle');
+        const restrictedModeCheckbox = document.getElementById('restricted-mode');
+        const intensitySettingButton = document.getElementById('intensity-setting-button');
+        const intensityModal = document.getElementById('intensity-modal');
+        const intensityConfirm = document.getElementById('intensity-confirm');
+        const sliderPoints = document.querySelectorAll('.slider-point');
+        const generateButton = document.getElementById('generate-button');
+        const loadingDiv = document.getElementById('loading');
+        const novelContent = document.getElementById('novel-content');
+        const saveButton = document.getElementById('save-button');
+        const backButton = document.getElementById('back-button');
+        const indicators = document.querySelectorAll('.indicator');
+        const logoImages = document.querySelectorAll('.logo-img');
+        const splashLogoImg = document.getElementById('splash-logo-img');
+
+        // Show splash screen for 3 seconds
+        window.addEventListener('DOMContentLoaded', () => {
+            // Set default logo for all logo placeholders
+            const defaultLogoUrl = 'https://via.placeholder.com/200x50?text=noveoAI';
+            updateLogoImages(defaultLogoUrl);
+            
+            // Hide splash after 3 seconds and show login screen
+            setTimeout(() => {
+                splashScreen.style.opacity = '0';
+                setTimeout(() => {
+                    splashScreen.style.display = 'none';
+                    showScreen('login-screen');
+                }, 300);
+            }, 3000);
+        });
+
+        // Logo image update function
+        function updateLogoImages(logoUrl) {
+            logoImages.forEach(img => {
+                img.src = logoUrl;
+            });
+            splashLogoImg.src = logoUrl;
+        }
+
+        // Screen navigation function
+        function showScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(screen => {
+                screen.classList.remove('active');
+            });
+            document.getElementById(screenId).classList.add('active');
+            
+            // Update indicators
+            indicators.forEach(indicator => {
+                indicator.classList.remove('active');
+                if (indicator.dataset.screen === screenId) {
+                    indicator.classList.add('active');
+                }
+            });
+        }
+
+        // Login functionality
+        loginButton.addEventListener('click', () => {
+            const id = loginId.value;
+            const pw = loginPw.value;
+            
+            if (CREDENTIALS[id] && CREDENTIALS[id] === pw) {
+                currentUser = id;
+                isPremium = PREMIUM_USERS.includes(id);
+                
+                // Update UI for user
+                userButton.textContent = `${id} 님`;
+                resultUserButton.textContent = `${id} 님`;
+                
+                if (isPremium) {
+                    premiumBadge.classList.remove('hidden');
+                    document.querySelectorAll('.premium-feature').forEach(el => {
+                        el.style.display = 'flex';
+                    });
+                }
+                
+                showScreen('novel-settings-screen');
+                loginError.classList.add('hidden');
+            } else {
+                loginError.textContent = '아이디 또는 비밀번호가 올바르지 않습니다.';
+                loginError.classList.remove('hidden');
+            }
+        });
+
+        // Logout functionality
+        function logout() {
+            currentUser = null;
+            isPremium = false;
+            
+            // Reset inputs
+            loginId.value = '';
+            loginPw.value = '';
+            document.getElementById('novel-topic').value = '';
+            document.getElementById('novel-description').value = '';
+            document.getElementById('novel-characters').value = '';
+            document.getElementById('novel-perspective').value = '';
+            
+            // Reset UI
+            premiumBadge.classList.add('hidden');
+            document.querySelectorAll('.premium-feature').forEach(el => {
+                el.style.display = 'none';
+            });
+            
+            // Show login screen
+            showScreen('login-screen');
+        }
+        
+        logoutButton.addEventListener('click', logout);
+        resultLogoutButton.addEventListener('click', logout);
+
+        // Restricted mode toggle
+        restrictedModeCheckbox.addEventListener('change', function() {
+            restrictedMode = this.checked;
+        });
+
+        // Intensity setting
+        intensitySettingButton.addEventListener('click', () => {
+            intensityModal.classList.remove('hidden');
+        });
+
+        intensityConfirm.addEventListener('click', () => {
+            intensityModal.classList.add('hidden');
+        });
+
+        sliderPoints.forEach(point => {
+            point.addEventListener('click', () => {
+                intensityLevel = parseInt(point.dataset.value);
+                
+                sliderPoints.forEach(p => {
+                    p.classList.remove('active');
+                });
+                
+                point.classList.add('active');
+            });
+        });
+
+        // Generate novel
+        generateButton.addEventListener('click', () => {
+            const topic = document.getElementById('novel-topic').value;
+            const description = document.getElementById('novel-description').value;
+            const characters = document.getElementById('novel-characters').value;
+            const perspective = document.getElementById('novel-perspective').value;
+            
+            loadingDiv.classList.remove('hidden');
+            
+            // Simulate generation with timeout
+            setTimeout(() => {
+                // Generate novel content
+                const novelTitle = generateNovelTitle(topic);
+                const novelText = generateNovelContent(topic, description, characters, perspective);
+                
+                novelContent.innerHTML = `<h2>${novelTitle}</h2>\n\n${novelText}`;
+                loadingDiv.classList.add('hidden');
+                
+                showScreen('novel-result-screen');
+            }, 2000);
+        });
+
+        // Generate novel title
+        function generateNovelTitle(topic) {
+            const titles = [
+                "미스터리한 여정",
+                "잃어버린 시간",
+                "별빛 아래의 약속",
+                "마지막 기회",
+                "숨겨진 진실",
+                "운명의 문",
+                "빛나는 기억",
+                "끝나지 않은 이야기"
+            ];
+            
+            return titles[Math.floor(Math.random() * titles.length)];
+        }
+
+        // Generate novel content
+        function generateNovelContent(topic, description, characters, perspective) {
+            const topics = topic ? topic : "미스터리";
+            const chars = characters ? characters : "주인공";
+            
+            if (restrictedMode && isPremium) {
+                return `어두운 골목길을 걸어가던 그는 갑자기 뒤에서 들려오는 발소리에 놀라 돌아봤다. 아무도 보이지 않았지만, 분명 누군가 그를 따라오고 있었다. 그의 심장이 빠르게 뛰기 시작했다.\n\n"누구세요?" 그가 목소리를 높였지만 대답은 없었다.\n\n인적 없는 거리에서 그의 목소리만이 허공을 맴돌았다. 그 순간, 그는 자신이 큰 실수를 했다는 것을 깨달았다...\n\n(이하 생략된 성인 내용)`;
+            } else {
+                return `햇살이 비추는 오후, ${chars}는 오래된 책장 뒤에서 반짝이는 물체를 발견했다. 호기심에 가득 차서 손을 뻗었을 때, 갑자기 강한 빛이 방 안을 가득 채웠다.\n\n"이게 뭐지?" 그는 눈을 비비며 중얼거렸다.\n\n빛이 사라지자, 그의 앞에는 전에 본 적 없는 문이 나타났다. 문 손잡이를 돌리자, 그 너머로 완전히 다른 세계가 펼쳐졌다. ${topics}의 세계였다.\n\n첫발을 내딛는 순간, 그는 평범했던 자신의 일상이 영원히 변할 것임을 직감했다...`;
+            }
+        }
+
+        // Navigation buttons
+        backButton.addEventListener('click', () => {
+            showScreen('novel-settings-screen');
+        });
+
+        saveButton.addEventListener('click', () => {
+            // In real implementation, this would save or download the novel
+            alert('소설이 저장되었습니다!');
+        });
+
+        // Enter key for login
+        loginPw.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                loginButton.click();
+            }
+        });
+    </script>
+</body>
+</html>
