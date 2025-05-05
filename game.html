@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Emory</title>
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #f9f9f9;
+    }
+    .container {
+      background-color: white;
+      border-radius: 10px;
+      padding: 20px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .emoji-container {
+      font-size: 24px;
+      background-color: #f0f8ff;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 15px;
+      min-height: 40px;
+      text-align: center;
+    }
+    textarea {
+      width: 100%;
+      height: 200px;
+      margin-bottom: 15px;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      font-size: 16px;
+      resize: vertical;
+    }
+    .result-box {
+      background-color: #f0fff0;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 15px;
+      min-height: 100px;
+    }
+    .button-group {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: bold;
+      transition: background-color 0.3s;
+    }
+    .start-btn {
+      background-color: #4CAF50;
+      color: white;
+    }
+    .submit-btn {
+      background-color: #2196F3;
+      color: white;
+    }
+    .save-btn {
+      background-color: #9C27B0;
+      color: white;
+    }
+    button:hover {
+      opacity: 0.9;
+    }
+    button:disabled {
+      background-color: #cccccc;
+      cursor: not-allowed;
+    }
+    .leaderboard {
+      margin-top: 30px;
+    }
+    .leaderboard h2 {
+      text-align: center;
+      color: #333;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+    th, td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid #ddd;
+    }
+    th {
+      background-color: #f2f2f2;
+      color: #333;
+    }
+    tr:nth-child(even) {
+      background-color: #f9f9f9;
+    }
+    tr:hover {
+      background-color: #f1f1f1;
+    }
+    .score {
+      font-weight: bold;
+      color: #E65100;
+    }
+    .loading {
+      display: none;
+      text-align: center;
+      margin: 10px 0;
+    }
+    .spinner {
+      border: 4px solid rgba(0, 0, 0, 0.1);
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border-left-color: #09f;
+      animation: spin 1s linear infinite;
+      display: inline-block;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .api-key-container {
+      margin-bottom: 20px;
+    }
+    .api-key-input {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      font-size: 16px;
+    }
+    .tab-container {
+      display: flex;
+      border-bottom: 1px solid #ddd;
+      margin-bottom: 20px;
+    }
+    .tab {
+      padding: 10px 20px;
+      cursor: pointer;
+      border: 1px solid transparent;
+      border-radius: 5px 5px 0 0;
+    }
+    .tab.active {
+      border: 1px solid #ddd;
+      border-bottom: none;
+      background-color: white;
+    }
+    .tab-content {
+      display: none;
+    }
+    .tab-content.active {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Emory</h1>
+      <p>이모티콘을 활용하여 재미있는 이야기를 작성하고 AI에게 평가받아보세요!</p>
+    </div>
+    
+    <!-- API 키가 코드에 직접 포함되어 있습니다 -->
+    <div class="api-key-container" style="display: none;">
+      <input type="password" id="apiKeyInput" class="api-key-input" value="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" />
+    </div>
+    
+    <div class="tab-container">
+      <div class="tab active" onclick="openTab('game')">게임 플레이</div>
+      <div class="tab" onclick="openTab('leaderboard')">순위표</div>
+    </div>
+    
+    <div id="game" class="tab-content active">
+      <div class="emoji-container" id="emojiDisplay">시작 버튼을 눌러 이모티콘을 받아보세요</div>
+      
+      <textarea id="storyInput" placeholder="이모티콘을 활용한 재미있는 이야기를 작성해보세요..."></textarea>
+      
+      <div class="loading" id="loading">
+        <div class="spinner"></div>
+        <p>처리 중입니다...</p>
+      </div>
+      
+      <div class="result-box" id="resultDisplay"></div>
+      
+      <div class="button-group">
+        <button class="start-btn" id="startBtn">🎲 이모티콘 받기</button>
+        <button class="submit-btn" id="submitBtn" disabled>📨 이야기 제출</button>
+        <button class="save-btn" id="saveBtn" disabled>💾 결과 저장</button>
+      </div>
+    </div>
+    
+    <div id="leaderboard" class="tab-content">
+      <div class="leaderboard">
+        <h2>🏆 순위표 🏆</h2>
+        <table id="leaderboardTable">
+          <thead>
+            <tr>
+              <th>순위</th>
+              <th>닉네임</th>
+              <th>이모티콘</th>
+              <th>점수</th>
+              <th>날짜</th>
+            </tr>
+          </thead>
+          <tbody id="leaderboardBody">
+            <!-- 순위 데이터가 여기에 추가됩니다 -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 전역 변수
+    let currentEmojis = "";
+    let currentScore = 0;
+    let leaderboardData = JSON.parse(localStorage.getItem('emojiGameLeaderboard')) || [];
+    
+    // DOM 요소
+    const apiKeyInput = document.getElementById('apiKeyInput');
+    const emojiDisplay = document.getElementById('emojiDisplay');
+    const storyInput = document.getElementById('storyInput');
+    const resultDisplay = document.getElementById('resultDisplay');
+    const startBtn = document.getElementById('startBtn');
+    const submitBtn = document.getElementById('submitBtn');
+    const saveBtn = document.getElementById('saveBtn');
+    const loadingIndicator = document.getElementById('loading');
+    
+    // API 키는 이미 코드에 포함되어 있으므로 저장 관련 코드 제거
+    
+    // 탭 전환 기능
+    function openTab(tabName) {
+      const tabs = document.getElementsByClassName('tab');
+      const tabContents = document.getElementsByClassName('tab-content');
+      
+      for (let i = 0; i < tabs.length; i++) {
+        tabs[i].classList.remove('active');
+        tabContents[i].classList.remove('active');
+      }
+      
+      document.getElementById(tabName).classList.add('active');
+      event.currentTarget.classList.add('active');
+      
+      if (tabName === 'leaderboard') {
+        updateLeaderboardDisplay();
+      }
+    }
+    
+    // Groq API 호출 함수
+    async function callGroqAPI(prompt) {
+      const apiKey = apiKeyInput.value; // 코드에 포함된 API 키 사용
+      
+      try {
+        const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            model: "llama3-8b-8192",
+            messages: [{ role: "user", content: prompt }]
+          })
+        });
+        
+        if (!response.ok) {
+          throw new Error(`API 오류: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        return data.choices[0].message.content.trim();
+      } catch (error) {
+        console.error('API 호출 오류:', error);
+        alert(`API 호출 중 오류가 발생했습니다: ${error.message}`);
+        return null;
+      }
+    }
+    
+    // 이모티콘 생성
+    async function getEmojisFromAI() {
+      loadingIndicator.style.display = 'block';
+      const prompt = "재미있는 이야기 주제로 쓸 수 있는 이모티콘을 3~5개 제시해줘. 다른 설명은 하지 말고 이모티콘만 보여줘.";
+      
+      const emojis = await callGroqAPI(prompt);
+      loadingIndicator.style.display = 'none';
+      
+      if (emojis) {
+        return emojis;
+      }
+      return null;
+    }
+    
+    // 이야기 평가
+    async function evaluateStory(emojis, story) {
+      loadingIndicator.style.display = 'block';
+      const prompt = `
+        다음 이모티콘들을 활용하여 사용자가 쓴 이야기를 평가해줘.
+
+        이모티콘: ${emojis}
+        이야기: ${story}
+
+        0점에서 100점 사이 점수와 간단한 평가를 해줘. 형식은 아래처럼 해줘:
+
+        점수: [숫자]
+        평가: [간단한 피드백]
+      `;
+      
+      const evaluation = await callGroqAPI(prompt);
+      loadingIndicator.style.display = 'none';
+      
+      if (evaluation) {
+        // 점수 추출
+        const scoreMatch = evaluation.match(/점수:\s*(\d+)/);
+        if (scoreMatch && scoreMatch[1]) {
+          currentScore = parseInt(scoreMatch[1]);
+        }
+        return evaluation;
+      }
+      return null;
+    }
+    
+    // 저장 기능
+    function saveResult() {
+      const story = storyInput.value.trim();
+      const result = resultDisplay.innerHTML;
+      
+      if (!story || !result) {
+        alert('이야기나 평가 결과가 비어있습니다.');
+        return;
+      }
+      
+      // 닉네임 입력 받기
+      const nickname = prompt('순위표에 저장할 닉네임을 입력해주세요:', '익명');
+      if (!nickname) return;
+      
+      // 현재 날짜
+      const now = new Date();
+      const dateStr = `${now.getFullYear()}-${(now.getMonth()+1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}`;
+      
+      // 순위표에 추가
+      leaderboardData.push({
+        nickname: nickname,
+        emojis: currentEmojis,
+        score: currentScore,
+        date: dateStr,
+        story: story,
+        evaluation: result
+      });
+      
+      // 점수 순으로 정렬
+      leaderboardData.sort((a, b) => b.score - a.score);
+      
+      // 로컬 스토리지에 저장
+      localStorage.setItem('emojiGameLeaderboard', JSON.stringify(leaderboardData));
+      
+      alert('결과가 순위표에 저장되었습니다!');
+      updateLeaderboardDisplay();
+    }
+    
+    // 순위표 업데이트
+    function updateLeaderboardDisplay() {
+      const leaderboardBody = document.getElementById('leaderboardBody');
+      leaderboardBody.innerHTML = '';
+      
+      if (leaderboardData.length === 0) {
+        const row = document.createElement('tr');
+        row.innerHTML = '<td colspan="5" style="text-align:center;">아직 저장된 결과가 없습니다.</td>';
+        leaderboardBody.appendChild(row);
+        return;
+      }
+      
+      leaderboardData.forEach((entry, index) => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${index + 1}</td>
+          <td>${entry.nickname}</td>
+          <td>${entry.emojis}</td>
+          <td class="score">${entry.score}</td>
+          <td>${entry.date}</td>
+        `;
+        
+        // 클릭 시 상세 정보 표시
+        row.style.cursor = 'pointer';
+        row.title = '클릭하여 이야기 내용 보기';
+        row.addEventListener('click', () => {
+          alert(`${entry.nickname}의 이야기\n\n${entry.story}\n\n평가:\n${entry.evaluation}`);
+        });
+        
+        leaderboardBody.appendChild(row);
+      });
+    }
+    
+    // 버튼 이벤트 리스너
+    startBtn.addEventListener('click', async () => {
+      const emojis = await getEmojisFromAI();
+      if (emojis) {
+        currentEmojis = emojis;
+        emojiDisplay.textContent = emojis;
+        storyInput.value = '';
+        resultDisplay.innerHTML = '';
+        submitBtn.disabled = false;
+        saveBtn.disabled = true;
+      }
+    });
+    
+    submitBtn.addEventListener('click', async () => {
+      const story = storyInput.value.trim();
+      if (!story) {
+        alert('이야기를 작성해주세요.');
+        return;
+      }
+      
+      const result = await evaluateStory(currentEmojis, story);
+      if (result) {
+        resultDisplay.innerHTML = result.replace(/\n/g, '<br>');
+        saveBtn.disabled = false;
+      }
+    });
+    
+    saveBtn.addEventListener('click', saveResult);
+    
+    // 초기 로드 시 순위표 업데이트
+    updateLeaderboardDisplay();
+  </script>
+</body>
+</html>
