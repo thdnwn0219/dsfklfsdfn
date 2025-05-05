@@ -22,6 +22,36 @@
       text-align: center;
       margin-bottom: 20px;
     }
+    .profile-section {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px;
+      background-color: #f0f8ff;
+      border-radius: 8px;
+      margin-bottom: 15px;
+    }
+    .user-info {
+      display: flex;
+      align-items: center;
+    }
+    .avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background-color: #4CAF50;
+      color: white;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-weight: bold;
+      margin-right: 10px;
+    }
+    .total-score {
+      font-weight: bold;
+      color: #E65100;
+      font-size: 18px;
+    }
     .emoji-container {
       font-size: 24px;
       background-color: #f0f8ff;
@@ -162,6 +192,68 @@
     .tab-content.active {
       display: block;
     }
+    .nickname-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0,0,0,0.5);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-content {
+      background-color: white;
+      padding: 25px;
+      border-radius: 10px;
+      width: 300px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+    .modal-content h2 {
+      margin-top: 0;
+      color: #333;
+    }
+    .modal-content input {
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+    }
+    .modal-content button {
+      width: 100%;
+      margin-top: 10px;
+    }
+    .medal {
+      font-size: 20px;
+      margin-right: 5px;
+    }
+    .recent-games {
+      margin-top: 20px;
+      padding: 15px;
+      background-color: #f5f5f5;
+      border-radius: 8px;
+    }
+    .recent-games h3 {
+      margin-top: 0;
+      color: #333;
+    }
+    .game-history {
+      max-height: 200px;
+      overflow-y: auto;
+      margin-top: 10px;
+    }
+    .game-item {
+      padding: 8px;
+      border-bottom: 1px solid #ddd;
+      display: flex;
+      justify-content: space-between;
+    }
+    .game-item:last-child {
+      border-bottom: none;
+    }
   </style>
 </head>
 <body>
@@ -176,9 +268,24 @@
       <input type="password" id="apiKeyInput" class="api-key-input" value="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" />
     </div>
     
+    <!-- 프로필 섹션 -->
+    <div class="profile-section">
+      <div class="user-info">
+        <div class="avatar" id="avatarDisplay">?</div>
+        <div>
+          <div id="nicknameDisplay">로그인 필요</div>
+          <small>최근 게임: <span id="gamesCountDisplay">0</span>회</small>
+        </div>
+      </div>
+      <div class="total-score">
+        총점: <span id="totalScoreDisplay">0</span>점
+      </div>
+    </div>
+    
     <div class="tab-container">
       <div class="tab active" onclick="openTab('game')">게임 플레이</div>
       <div class="tab" onclick="openTab('leaderboard')">순위표</div>
+      <div class="tab" onclick="openTab('history')">내 기록</div>
     </div>
     
     <div id="game" class="tab-content active">
@@ -208,9 +315,9 @@
             <tr>
               <th>순위</th>
               <th>닉네임</th>
-              <th>이모티콘</th>
-              <th>점수</th>
-              <th>날짜</th>
+              <th>총점</th>
+              <th>게임수</th>
+              <th>평균</th>
             </tr>
           </thead>
           <tbody id="leaderboardBody">
@@ -219,13 +326,36 @@
         </table>
       </div>
     </div>
+    
+    <div id="history" class="tab-content">
+      <div class="recent-games">
+        <h3>나의 게임 기록</h3>
+        <div class="game-history" id="gameHistoryList">
+          <!-- 게임 기록이 여기에 추가됩니다 -->
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 닉네임 설정 모달 -->
+  <div class="nickname-modal" id="nicknameModal">
+    <div class="modal-content">
+      <h2>닉네임 설정</h2>
+      <p>게임을 시작하기 전에 닉네임을 설정해주세요.</p>
+      <input type="text" id="nicknameInput" placeholder="닉네임 입력 (2-10자)" maxlength="10">
+      <button class="start-btn" id="saveNicknameBtn">시작하기</button>
+    </div>
   </div>
 
   <script>
     // 전역 변수
     let currentEmojis = "";
     let currentScore = 0;
+    let userNickname = "";
+    let userTotalScore = 0;
+    let userGamesCount = 0;
     let leaderboardData = JSON.parse(localStorage.getItem('emojiGameLeaderboard')) || [];
+    let userGamesHistory = [];
     
     // DOM 요소
     const apiKeyInput = document.getElementById('apiKeyInput');
@@ -236,8 +366,69 @@
     const submitBtn = document.getElementById('submitBtn');
     const saveBtn = document.getElementById('saveBtn');
     const loadingIndicator = document.getElementById('loading');
+    const nicknameModal = document.getElementById('nicknameModal');
+    const nicknameInput = document.getElementById('nicknameInput');
+    const saveNicknameBtn = document.getElementById('saveNicknameBtn');
+    const nicknameDisplay = document.getElementById('nicknameDisplay');
+    const avatarDisplay = document.getElementById('avatarDisplay');
+    const totalScoreDisplay = document.getElementById('totalScoreDisplay');
+    const gamesCountDisplay = document.getElementById('gamesCountDisplay');
+    const gameHistoryList = document.getElementById('gameHistoryList');
     
-    // API 키는 이미 코드에 포함되어 있으므로 저장 관련 코드 제거
+    // 페이지 로드 시 닉네임 확인
+    window.addEventListener('DOMContentLoaded', () => {
+      checkNickname();
+      updateLeaderboardDisplay();
+      updateGameHistory();
+    });
+    
+    // 닉네임 확인 함수
+    function checkNickname() {
+      const savedNickname = localStorage.getItem('emojiGameNickname');
+      if (savedNickname) {
+        userNickname = savedNickname;
+        nicknameDisplay.textContent = userNickname;
+        avatarDisplay.textContent = userNickname.charAt(0).toUpperCase();
+        
+        // 유저 점수 정보 로드
+        const userScoreData = getUserScoreData(userNickname);
+        userTotalScore = userScoreData.totalScore;
+        userGamesCount = userScoreData.gamesCount;
+        userGamesHistory = userScoreData.history || [];
+        
+        totalScoreDisplay.textContent = userTotalScore;
+        gamesCountDisplay.textContent = userGamesCount;
+      } else {
+        showNicknameModal();
+      }
+    }
+    
+    // 닉네임 모달 표시
+    function showNicknameModal() {
+      nicknameModal.style.display = 'flex';
+    }
+    
+    // 닉네임 저장
+    saveNicknameBtn.addEventListener('click', () => {
+      const nickname = nicknameInput.value.trim();
+      if (nickname.length < 2) {
+        alert('닉네임은 최소 2자 이상이어야 합니다.');
+        return;
+      }
+      
+      userNickname = nickname;
+      localStorage.setItem('emojiGameNickname', userNickname);
+      nicknameDisplay.textContent = userNickname;
+      avatarDisplay.textContent = userNickname.charAt(0).toUpperCase();
+      nicknameModal.style.display = 'none';
+      
+      // 새 사용자의 경우 초기화
+      userTotalScore = 0;
+      userGamesCount = 0;
+      userGamesHistory = [];
+      totalScoreDisplay.textContent = userTotalScore;
+      gamesCountDisplay.textContent = userGamesCount;
+    });
     
     // 탭 전환 기능
     function openTab(tabName) {
@@ -254,6 +445,8 @@
       
       if (tabName === 'leaderboard') {
         updateLeaderboardDisplay();
+      } else if (tabName === 'history') {
+        updateGameHistory();
       }
     }
     
@@ -330,42 +523,128 @@
       return null;
     }
     
-    // 저장 기능
+    // 유저 점수 데이터 가져오기
+    function getUserScoreData(nickname) {
+      // 먼저 순위표에서 해당 사용자 찾기
+      let userData = null;
+      for (const entry of leaderboardData) {
+        if (entry.nickname === nickname) {
+          userData = entry;
+          break;
+        }
+      }
+      
+      // 사용자가 없으면 새로 생성
+      if (!userData) {
+        return {
+          nickname: nickname,
+          totalScore: 0,
+          gamesCount: 0,
+          history: []
+        };
+      }
+      
+      return userData;
+    }
+    
+    // 결과 저장 함수
     function saveResult() {
       const story = storyInput.value.trim();
       const result = resultDisplay.innerHTML;
       
-      if (!story || !result) {
+      if (!story || !result || !currentScore) {
         alert('이야기나 평가 결과가 비어있습니다.');
         return;
       }
       
-      // 닉네임 입력 받기
-      const nickname = prompt('순위표에 저장할 닉네임을 입력해주세요:', '익명');
-      if (!nickname) return;
+      if (!userNickname) {
+        alert('닉네임 설정이 필요합니다.');
+        showNicknameModal();
+        return;
+      }
       
       // 현재 날짜
       const now = new Date();
       const dateStr = `${now.getFullYear()}-${(now.getMonth()+1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}`;
+      const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
       
-      // 순위표에 추가
-      leaderboardData.push({
-        nickname: nickname,
+      // 게임 결과
+      const gameResult = {
         emojis: currentEmojis,
         score: currentScore,
         date: dateStr,
+        time: timeStr,
         story: story,
         evaluation: result
-      });
+      };
+      
+      // 사용자 정보 업데이트
+      let userData = null;
+      let userIndex = -1;
+      
+      // 기존 사용자 찾기
+      for (let i = 0; i < leaderboardData.length; i++) {
+        if (leaderboardData[i].nickname === userNickname) {
+          userData = leaderboardData[i];
+          userIndex = i;
+          break;
+        }
+      }
+      
+      // 사용자가 없으면 새로 생성
+      if (!userData) {
+        userData = {
+          nickname: userNickname,
+          totalScore: currentScore,
+          gamesCount: 1,
+          history: [gameResult]
+        };
+        leaderboardData.push(userData);
+      } else {
+        // 기존 사용자 정보 업데이트
+        userData.totalScore += currentScore;
+        userData.gamesCount += 1;
+        
+        // 히스토리 배열이 없으면 생성
+        if (!userData.history) {
+          userData.history = [];
+        }
+        
+        // 히스토리에 게임 결과 추가
+        userData.history.push(gameResult);
+        
+        // 최대 20개까지만 유지
+        if (userData.history.length > 20) {
+          userData.history = userData.history.slice(-20);
+        }
+        
+        // 리더보드 데이터 업데이트
+        leaderboardData[userIndex] = userData;
+      }
       
       // 점수 순으로 정렬
-      leaderboardData.sort((a, b) => b.score - a.score);
+      leaderboardData.sort((a, b) => b.totalScore - a.totalScore);
       
       // 로컬 스토리지에 저장
       localStorage.setItem('emojiGameLeaderboard', JSON.stringify(leaderboardData));
       
-      alert('결과가 순위표에 저장되었습니다!');
-      updateLeaderboardDisplay();
+      // 현재 사용자 정보 업데이트
+      userTotalScore = userData.totalScore;
+      userGamesCount = userData.gamesCount;
+      userGamesHistory = userData.history;
+      
+      // UI 업데이트
+      totalScoreDisplay.textContent = userTotalScore;
+      gamesCountDisplay.textContent = userGamesCount;
+      
+      alert('결과가 저장되었습니다!');
+      
+      // 저장 버튼 비활성화
+      saveBtn.disabled = true;
+      submitBtn.disabled = true;
+      
+      // 히스토리 탭 업데이트
+      updateGameHistory();
     }
     
     // 순위표 업데이트
@@ -382,27 +661,81 @@
       
       leaderboardData.forEach((entry, index) => {
         const row = document.createElement('tr');
+        
+        // 메달 표시
+        let rankDisplay = `${index + 1}`;
+        if (index === 0) rankDisplay = `<span class="medal">🥇</span>`;
+        else if (index === 1) rankDisplay = `<span class="medal">🥈</span>`;
+        else if (index === 2) rankDisplay = `<span class="medal">🥉</span>`;
+        
+        // 평균 점수 계산
+        const avgScore = entry.gamesCount > 0 ? 
+          Math.round(entry.totalScore / entry.gamesCount) : 0;
+        
         row.innerHTML = `
-          <td>${index + 1}</td>
+          <td>${rankDisplay}</td>
           <td>${entry.nickname}</td>
-          <td>${entry.emojis}</td>
-          <td class="score">${entry.score}</td>
-          <td>${entry.date}</td>
+          <td class="score">${entry.totalScore}</td>
+          <td>${entry.gamesCount}</td>
+          <td>${avgScore}</td>
         `;
         
-        // 클릭 시 상세 정보 표시
-        row.style.cursor = 'pointer';
-        row.title = '클릭하여 이야기 내용 보기';
-        row.addEventListener('click', () => {
-          alert(`${entry.nickname}의 이야기\n\n${entry.story}\n\n평가:\n${entry.evaluation}`);
-        });
+        // 현재 사용자 하이라이트
+        if (entry.nickname === userNickname) {
+          row.style.backgroundColor = "#fff8e1";
+          row.style.fontWeight = "bold";
+        }
         
         leaderboardBody.appendChild(row);
       });
     }
     
+    // 게임 히스토리 업데이트
+    function updateGameHistory() {
+      gameHistoryList.innerHTML = '';
+      
+      if (!userNickname) {
+        gameHistoryList.innerHTML = '<div style="text-align:center;padding:20px;">닉네임 설정이 필요합니다.</div>';
+        return;
+      }
+      
+      if (!userGamesHistory || userGamesHistory.length === 0) {
+        gameHistoryList.innerHTML = '<div style="text-align:center;padding:20px;">아직 저장된 게임 기록이 없습니다.</div>';
+        return;
+      }
+      
+      // 최신순으로 정렬
+      const sortedHistory = [...userGamesHistory].reverse();
+      
+      sortedHistory.forEach(game => {
+        const gameItem = document.createElement('div');
+        gameItem.className = 'game-item';
+        
+        gameItem.innerHTML = `
+          <div>
+            <strong>${game.date} ${game.time}</strong>
+            <div>${game.emojis}</div>
+          </div>
+          <div class="score">${game.score}점</div>
+        `;
+        
+        // 게임 상세 정보 표시
+        gameItem.addEventListener('click', () => {
+          alert(`[${game.date} ${game.time} 게임]\n\n이모티콘: ${game.emojis}\n\n${game.story}\n\n평가:\n${game.evaluation.replace(/<br>/g, '\n')}`);
+        });
+        
+        gameHistoryList.appendChild(gameItem);
+      });
+    }
+    
     // 버튼 이벤트 리스너
     startBtn.addEventListener('click', async () => {
+      if (!userNickname) {
+        alert('닉네임 설정이 필요합니다.');
+        showNicknameModal();
+        return;
+      }
+      
       const emojis = await getEmojisFromAI();
       if (emojis) {
         currentEmojis = emojis;
@@ -430,8 +763,12 @@
     
     saveBtn.addEventListener('click', saveResult);
     
-    // 초기 로드 시 순위표 업데이트
-    updateLeaderboardDisplay();
+    // 닉네임 입력 엔터키 처리
+    nicknameInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        saveNicknameBtn.click();
+      }
+    });
   </script>
 </body>
 </html>
