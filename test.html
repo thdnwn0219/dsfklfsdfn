@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>Birthday Otter Game</title>
+  <style>
+    body, html { margin: 0; overflow: hidden; }
+    #game-canvas { display: block; width: 100vw; height: 100vh; }
+    #joystick { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); width: 150px; height: 150px; }
+    #dialogue {
+      position: absolute; bottom: 200px; left: 50%; transform: translateX(-50%);
+      background: rgba(255,255,255,0.9); padding: 10px 20px; border-radius: 20px;
+      font-family: sans-serif; display: none;
+    }
+    #roulette {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+      background: #fff; padding: 20px; border-radius: 10px; display: none;
+    }
+    #roulette canvas { display: block; margin: 0 auto; }
+    #spin-btn { margin-top:10px; }
+  </style>
+</head>
+<body>
+  <canvas id="game-canvas"></canvas>
+  <div id="joystick"></div>
+  <div id="dialogue">“안녕! 선물을 찾아봐!”</div>
+  <div id="roulette">
+    <canvas id="wheel" width="300" height="300"></canvas>
+    <button id="spin-btn">Spin!</button>
+  </div>
+
+  <!-- 라이브러리 로드 -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.156.0/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.156.0/examples/js/loaders/GLTFLoader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/nipplejs@0.9.0/dist/nipplejs.min.js"></script>
+
+  <script>
+  // -- Three.js 기본 세팅 및 해달 로드 / 수영 애니메이션 --
+  const canvas = document.getElementById('game-canvas');
+  const renderer = new THREE.WebGLRenderer({canvas, antialias:true});
+  const scene = new THREE.Scene();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+
+  const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 100);
+  camera.position.set(0, 2, 5); // 카메라 위치 조정
+
+  // 바다 배경 (간단한 파란색 배경)
+  scene.background = new THREE.Color(0x87CEEB); // 하늘색
+
+  const light = new THREE.HemisphereLight(0xffffff, 0x444444, 1); // 전체적인 빛
+  light.position.set(0, 20, 0);
+  scene.add(light);
+
+  const dirLight = new THREE.DirectionalLight(0xffffff, 0.8); // 태양광 역할
+  dirLight.position.set(-3, 10, -10);
+  scene.add(dirLight);
+
+
+  let otter, mixer;
+  const loader = new THREE.GLTFLoader();
+  // 실제 3D 모델 파일('otter_swim.glb')이 필요합니다.
+  // 이 예제에서는 모델 로딩 성공/실패 처리를 단순화했습니다.
+  // 생일 모자는 모델 자체에 포함되거나, 코드로 추가해야 합니다.
+  loader.load('otter_swim.glb', gltf => { // 'otter_swim.glb' 경로에 3D 모델 파일이 있어야 합니다.
+    otter = gltf.scene;
+    otter.scale.set(0.3, 0.3, 0.3); // 크기 조절
+    otter.position.y = 0; // 해수면 높이에 맞게 조정
+    scene.add(otter);
+
+    // 수영모자 (간단한 구체로 표현)
+    const hatMaterial = new THREE.MeshStandardMaterial({color: 0xff0000}); // 빨간색 수영모자
+    const hatGeometry = new THREE.SphereGeometry(0.2, 32, 16); // 크기 및 세부도 조절
+    const swimCap = new THREE.Mesh(hatGeometry, hatMaterial);
+    swimCap.position.set(0, 0.6, 0.1); // 해달 머리 위 위치 (모델에 따라 조절)
+    otter.add(swimCap); // 해달 모델의 자식으로 추가하여 같이 움직이도록 함
+
+    // 생일모자 (간단한 원뿔로 표현)
+    const birthdayHatMaterial = new THREE.MeshStandardMaterial({color: 0xffff00}); // 노란색 생일모자
+    const birthdayHatGeometry = new THREE.ConeGeometry(0.15, 0.4, 32); // 밑면 반지름, 높이, 분할 수
+    const birthdayCap = new THREE.Mesh(birthdayHatGeometry, birthdayHatMaterial);
+    birthdayCap.position.set(0, 0.8, 0.1); // 수영모자 위에 위치하도록 조정 (모델에 따라 조절)
+    birthdayCap.rotation.x = Math.PI / 10; // 약간 기울이기
+    otter.add(birthdayCap);
+
+
+    if (gltf.animations && gltf.animations.length) {
+      mixer = new THREE.AnimationMixer(otter);
+      // "swim" 또는 "idle" 등 실제 애니메이션 이름으로 변경해야 할 수 있습니다.
+      // gltf.animations[0]은 첫 번째 애니메이션을 재생합니다.
+      const swimAnimation = gltf.animations.find(clip => clip.name.toLowerCase().includes('swim')) || gltf.animations[0];
+      if (swimAnimation) {
+        mixer.clipAction(swimAnimation).play(); // 수영 애니메이션
+      }
+    }
+  }, undefined, function (error) {
+    console.error('An error happened loading the otter model:', error);
+    // 모델 로딩 실패 시, 대체용 간단한 큐브 생성
+    const geometry = new THREE.BoxGeometry(0.5, 0.5, 0.8); // 해달 몸통 크기
+    const material = new THREE.MeshStandardMaterial({ color: 0x8B4513 }); // 갈색
+    otter = new THREE.Mesh(geometry, material);
+    otter.position.y = 0;
+    scene.add(otter);
+
+    // 대체용 수영모자
+    const hatMaterial = new THREE.MeshStandardMaterial({color: 0xff0000});
+    const hatGeometry = new THREE.SphereGeometry(0.15, 32, 16);
+    const swimCap = new THREE.Mesh(hatGeometry, hatMaterial);
+    swimCap.position.set(0, 0.3, 0);
+    otter.add(swimCap);
+
+    // 대체용 생일모자
+    const birthdayHatMaterial = new THREE.MeshStandardMaterial({color: 0xffff00});
+    const birthdayHatGeometry = new THREE.ConeGeometry(0.1, 0.3, 32);
+    const birthdayCap = new THREE.Mesh(birthdayHatGeometry, birthdayHatMaterial);
+    birthdayCap.position.set(0, 0.5, 0);
+    otter.add(birthdayCap);
+
+    alert("3D 해달 모델(otter_swim.glb)을 로드할 수 없습니다. 대체용 캐릭터로 표시됩니다.");
+  });
+
+  // -- 가상 조이스틱(nipple.js)으로 이동 벡터 생성 --
+  const joystickContainer = document.getElementById('joystick');
+  const joystick = nipplejs.create({
+    zone: joystickContainer,
+    mode: 'static', // 'dynamic' 또는 'semi'도 가능
+    position: { left: '50%', top: '50%' }, // 조이스틱 컨테이너 내부에서의 위치
+    color: 'rgba(128,128,128,0.5)', // 조이스틱 색상
+    size: 100 // 조이스틱 크기
+  });
+  let moveVector = new THREE.Vector3(0,0,0); // 수평 이동만 고려하므로 z축을 사용
+  let moveSpeed = 1.5; // 이동 속도
+
+  joystick.on('move', (evt, data) => {
+    if (data.angle && data.force) {
+      const angle = data.angle.radian;
+      const force = Math.min(data.force, 1.0); // 힘을 0과 1 사이로 제한
+      // 조이스틱 각도에 따라 x, z 이동 방향 설정 (카메라 방향 고려 안함)
+      moveVector.set(Math.sin(angle) * force, 0, Math.cos(angle) * force);
+    }
+  });
+  joystick.on('end', ()=> moveVector.set(0,0,0));
+
+  // -- 대화 및 룰렛 UI 제어 및 트리거 지점 --
+  const dialogueEl = document.getElementById('dialogue');
+  const rouletteEl = document.getElementById('roulette');
+  let giftCollected = false;
+  let canShowDialogue = true;
+
+  // 아이템 (예: 간단한 구체로 표현)
+  const itemGeometry = new THREE.SphereGeometry(0.3, 16, 16);
+  const itemMaterial = new THREE.MeshStandardMaterial({ color: 0xffd700 }); // 금색
+  const giftItem = new THREE.Mesh(itemGeometry, itemMaterial);
+  giftItem.position.set(3, 0, -2); // 아이템 위치
+  scene.add(giftItem);
+
+  const dialogueMessages = [
+    "안녕! 바다 속에 숨겨진 생일 선물을 찾아봐!",
+    "반짝이는 물체를 따라가면 찾을 수 있을 거야.",
+    "조심해! 깊은 곳은 위험할 수도 있어."
+  ];
+  let currentDialogue = 0;
+
+  function showDialogue(message) {
+    dialogueEl.textContent = message;
+    dialogueEl.style.display = 'block';
+  }
+
+  function hideDialogue() {
+    dialogueEl.style.display = 'none';
+  }
+
+  function checkTriggers() {
+    if (otter && !giftCollected && giftItem.visible) {
+      const distanceToItem = otter.position.distanceTo(giftItem.position);
+      if (distanceToItem < 0.8) { // 아이템 획득 거리
+        giftItem.visible = false; // 아이템 숨기기
+        showDialogue("선물을 찾았구나! 축하해! 룰렛을 돌려보자!");
+        setTimeout(()=>{
+          hideDialogue();
+          rouletteEl.style.display = 'block';
+          joystickContainer.style.display = 'none'; // 룰렛 활성화 시 조이스틱 숨김
+        }, 3000); // 3초 후 룰렛 표시
+        giftCollected = true;
+      } else if (distanceToItem < 2.0 && canShowDialogue) { // 대화 시작 거리
+         // 처음 접근 시 대화 시작 (동숲 스타일)
+        showDialogue(dialogueMessages[currentDialogue]);
+        canShowDialogue = false; // 한 번만 보여주기 (또는 다른 로직으로 반복 제어)
+        setTimeout(() => {
+            hideDialogue();
+            canShowDialogue = true; // 일정 시간 후 다시 대화 가능하도록
+        }, 5000); // 5초 후 대화창 숨김
+      }
+    }
+  }
+
+  // -- 룰렛 그리기 (HTML5 Canvas) 및 Spin 버튼 --
+  const wheelCanvas = document.getElementById('wheel');
+  const ctx = wheelCanvas.getContext('2d');
+  const segments = ['멋진 수경','맛있는 조개','새 수영모자','진주 목걸이','비밀 아이템','한 번 더!'];
+  const segColors = ['#FFD700','#FFA07A','#ADD8E6','#FFC0CB','#98FB98','#D3D3D3'];
+  const segAngle = 2*Math.PI/segments.length;
+  let currentAngle = 0;
+  let spinTimeout = null;
+  let spinAngleStart = 0;
+  let spinTime = 0;
+  let spinTimeTotal = 0;
+
+  function drawWheel() {
+    ctx.clearRect(0,0,300,300); // 캔버스 클리어
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 2;
+    ctx.font = '14px Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    for(let i=0;i<segments.length;i++){
+      const angle = currentAngle + i*segAngle;
+      ctx.fillStyle = segColors[i % segColors.length];
+
+      ctx.beginPath();
+      ctx.moveTo(150,150);
+      ctx.arc(150,150,140, angle, angle + segAngle);
+      ctx.lineTo(150,150);
+      ctx.fill();
+      ctx.stroke();
+
+      // 텍스트 그리기
+      ctx.save();
+      ctx.fillStyle = '#000';
+      ctx.translate(150 + Math.cos(angle + segAngle/2) * 100, 150 + Math.sin(angle + segAngle/2) * 100);
+      ctx.rotate(angle + segAngle/2 + Math.PI/2);
+      ctx.fillText(segments[i],0,0);
+      ctx.restore();
+    }
+    // 화살표 (룰렛 중앙 상단 고정)
+    ctx.fillStyle='black';
+    ctx.beginPath();
+    ctx.moveTo(150 - 10, 10); // 화살표 위치 조정 (룰렛 테두리 밖)
+    ctx.lineTo(150 + 10, 10);
+    ctx.lineTo(150, 30);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  function rotateWheel() {
+    spinTime += 30; // 프레임 시간 (ms)
+    if (spinTime >= spinTimeTotal) {
+      stopRotateWheel();
+      return;
+    }
+    const spinAngle = spinAngleStart - easeOut(spinTime, 0, spinAngleStart, spinTimeTotal);
+    currentAngle += (spinAngle * Math.PI / 180); // 각도를 라디안으로 변환하여 currentAngle에 더함
+    drawWheel();
+    spinTimeout = setTimeout(rotateWheel, 30);
+  }
+
+  function stopRotateWheel() {
+    clearTimeout(spinTimeout);
+    const degrees = currentAngle * 180 / Math.PI; // 최종 각도를 도로 변환
+    const arcd = segAngle * 180 / Math.PI; // 한 칸의 각도 (도)
+    const index = Math.floor(((360 - degrees % 360) % 360) / arcd); // 화살표가 가리키는 아이템 인덱스 계산
+    ctx.save();
+    ctx.font = 'bold 20px Arial';
+    ctx.fillStyle = 'red';
+    ctx.textAlign = 'center';
+    // alert(`축하합니다! ${segments[index]}을(를) 획득했습니다!`);
+    showDialogue(`축하합니다! ${segments[index]}을(를) 획득했습니다!`);
+    document.getElementById('spin-btn').disabled = false;
+    setTimeout(() => { // 결과 메시지 표시 후 게임 재시작 또는 다음 단계
+        hideDialogue();
+        rouletteEl.style.display = 'none';
+        joystickContainer.style.display = 'flex'; // 조이스틱 다시 표시
+        // giftCollected = false; // 다시 아이템 찾기 가능하게 하려면
+        // giftItem.visible = true;
+    }, 3000);
+    ctx.restore();
+  }
+
+  function easeOut(t, b, c, d) { // 감속 효과 함수
+    const ts = (t/=d)*t;
+    const tc = ts*t;
+    return b+c*(tc + -3*ts + 3*t);
+  }
+
+  document.getElementById('spin-btn').addEventListener('click', ()=>{
+    spinAngleStart = Math.random() * 10 + 10; // 회전 각도 (최소 3600도 이상 추천)
+    spinTime = 0;
+    spinTimeTotal = Math.random() * 3000 + 4000; // 회전 시간 (ms)
+    document.getElementById('spin-btn').disabled = true;
+    rotateWheel();
+  });
+
+  drawWheel(); // 초기 룰렛 그리기
+
+  // -- 애니메이션 루프 --
+  const clock = new THREE.Clock();
+  function animate(){
+    requestAnimationFrame(animate);
+    const dt = clock.getDelta();
+    if(mixer) mixer.update(dt);
+
+    if(otter){
+      const moveScaled = moveVector.clone().multiplyScalar(moveSpeed * dt);
+      otter.position.add(moveScaled);
+
+      // 캐릭터가 움직일 때만 회전
+      if (moveVector.lengthSq() > 0.001) { // 아주 작은 움직임에도 반응하도록
+          // 캐릭터의 y축 회전을 이동 방향으로 부드럽게 전환
+          const targetAngle = Math.atan2(moveVector.x, moveVector.z);
+          // 현재 각도와 목표 각도 사이의 가장 짧은 각도 차이 계산
+          let angleDifference = targetAngle - otter.rotation.y;
+          while (angleDifference < -Math.PI) angleDifference += 2 * Math.PI;
+          while (angleDifference > Math.PI) angleDifference -= 2 * Math.PI;
+          // 부드러운 회전을 위해 lerp 사용
+          otter.rotation.y += angleDifference * 0.1; // 0.1은 회전 속도 조절 계수
+      }
+      camera.position.x = otter.position.x;
+      camera.position.z = otter.position.z + 5; // 캐릭터 뒤에서 따라가도록
+      camera.lookAt(otter.position); // 항상 캐릭터를 바라보도록
+
+      checkTriggers();
+    }
+    renderer.render(scene,camera);
+  }
+  animate();
+
+  window.addEventListener('resize', ()=>{
+    renderer.setSize(window.innerWidth,window.innerHeight);
+    camera.aspect = window.innerWidth/window.innerHeight;
+    camera.updateProjectionMatrix();
+    drawWheel(); // 창 크기 변경 시 룰렛 다시 그리기
+  });
+  </script>
+</body>
+</html>
